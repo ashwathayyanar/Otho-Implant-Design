@@ -7,7 +7,7 @@ export function TopBar() {
       <div className="flex items-center gap-4">
         <h1 className="font-semibold text-zinc-100 tracking-tight">OrthoFEA Simulation</h1>
         <div className="h-4 w-px bg-zinc-800" />
-        <span className="text-xs font-mono text-zinc-500">v2.4.1-beta</span>
+        <span className="text-xs font-mono text-zinc-500">Model</span>
       </div>
       <div className="flex items-center gap-3">
         <button className="text-zinc-400 hover:text-zinc-100 transition-colors p-2">
