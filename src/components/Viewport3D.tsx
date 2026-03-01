@@ -16,13 +16,23 @@ interface ViewportProps {
 // Helper to get color based on stress
 const getStressColor = (stress: number, yieldStrength: number) => {
   const ratio = Math.min(stress / yieldStrength, 1.2);
-  if (ratio < 0.3) return "#22c55e"; // Green
-  if (ratio < 0.7) return "#eab308"; // Yellow
+  if (ratio < 0.66) return "#22c55e"; // Green (Safe, SF > 1.5)
+  if (ratio < 0.85) return "#eab308"; // Yellow
   if (ratio < 1.0) return "#f97316"; // Orange
   return "#ef4444"; // Red
 };
 
-function HipStem({ showResults, geometry, color }: { showResults: boolean, geometry: GeometryData, color: string }) {
+function StressLabel({ isSafe }: { isSafe: boolean }) {
+  return (
+    <div className={isSafe 
+      ? "bg-green-500/90 text-white text-[10px] px-2 py-1 rounded font-mono whitespace-nowrap border border-green-400" 
+      : "bg-red-500/90 text-white text-[10px] px-2 py-1 rounded font-mono whitespace-nowrap border border-red-400"}>
+      {isSafe ? "MIN STRESS" : "MAX STRESS"}
+    </div>
+  );
+}
+
+function HipStem({ showResults, geometry, color, isSafe }: { showResults: boolean, geometry: GeometryData, color: string, isSafe: boolean }) {
   const group = useRef<THREE.Group>(null);
   
   // Scale based on parametric geometry
@@ -40,12 +50,10 @@ function HipStem({ showResults, geometry, color }: { showResults: boolean, geome
       {/* Neck (High Stress Area) */}
       <mesh position={[0.4, 0.5, 0]} rotation={[0, 0, -0.8]}>
         <cylinderGeometry args={[0.2, 0.3, 1.5, 32]} />
-        <meshStandardMaterial color={showResults ? "#ef4444" : "#a0a0a0"} metalness={0.8} roughness={0.2} />
+        <meshStandardMaterial color={showResults ? (isSafe ? "#22c55e" : "#ef4444") : "#a0a0a0"} metalness={0.8} roughness={0.2} />
         {showResults && (
           <Html position={[0.5, 0.5, 0]} center>
-            <div className="bg-red-500/90 text-white text-[10px] px-2 py-1 rounded font-mono whitespace-nowrap border border-red-400">
-              MAX STRESS
-            </div>
+            <StressLabel isSafe={isSafe} />
           </Html>
         )}
       </mesh>
@@ -53,7 +61,7 @@ function HipStem({ showResults, geometry, color }: { showResults: boolean, geome
       <mesh position={[0.9, 1.0, 0]}>
         <sphereGeometry args={[0.5, 32, 32]} />
         <meshStandardMaterial color={showResults ? "#22c55e" : "#a0a0a0"} metalness={0.9} roughness={0.1} />
-        {showResults && (
+        {showResults && !isSafe && (
           <Html position={[0, 0.6, 0]} center>
             <div className="bg-green-500/90 text-white text-[10px] px-2 py-1 rounded font-mono whitespace-nowrap border border-green-400">
               MIN STRESS
@@ -65,7 +73,7 @@ function HipStem({ showResults, geometry, color }: { showResults: boolean, geome
   );
 }
 
-function BonePlate({ showResults, geometry, color }: { showResults: boolean, geometry: GeometryData, color: string }) {
+function BonePlate({ showResults, geometry, color, isSafe }: { showResults: boolean, geometry: GeometryData, color: string, isSafe: boolean }) {
   const scaleX = geometry.width / 15;
   const scaleY = geometry.length / 120;
   const scaleZ = geometry.thickness / 4.5;
@@ -86,14 +94,12 @@ function BonePlate({ showResults, geometry, color }: { showResults: boolean, geo
           {/* Middle hole is usually max stress */}
           {showResults && i === 1 && (
             <Html position={[0.5, 0, 0]} center>
-              <div className="bg-red-500/90 text-white text-[10px] px-2 py-1 rounded font-mono whitespace-nowrap border border-red-400">
-                MAX STRESS
-              </div>
+              <StressLabel isSafe={isSafe} />
             </Html>
           )}
         </group>
       ))}
-      {showResults && (
+      {showResults && !isSafe && (
         <Html position={[0, -2.2, 0]} center>
           <div className="bg-green-500/90 text-white text-[10px] px-2 py-1 rounded font-mono whitespace-nowrap border border-green-400">
             MIN STRESS
@@ -104,7 +110,7 @@ function BonePlate({ showResults, geometry, color }: { showResults: boolean, geo
   );
 }
 
-function KneeJoint({ showResults, geometry, color }: { showResults: boolean, geometry: GeometryData, color: string }) {
+function KneeJoint({ showResults, geometry, color, isSafe }: { showResults: boolean, geometry: GeometryData, color: string, isSafe: boolean }) {
   const scale = geometry.width / 15;
   return (
     <group position={[0, 0, 0]} scale={[scale, scale, scale]}>
@@ -118,16 +124,14 @@ function KneeJoint({ showResults, geometry, color }: { showResults: boolean, geo
       </mesh>
       {showResults && (
         <Html position={[1.2, 1, 0]} center>
-          <div className="bg-red-500/90 text-white text-[10px] px-2 py-1 rounded font-mono whitespace-nowrap border border-red-400">
-            MAX STRESS
-          </div>
+          <StressLabel isSafe={isSafe} />
         </Html>
       )}
     </group>
   );
 }
 
-function SpinalRod({ showResults, geometry, color }: { showResults: boolean, geometry: GeometryData, color: string }) {
+function SpinalRod({ showResults, geometry, color, isSafe }: { showResults: boolean, geometry: GeometryData, color: string, isSafe: boolean }) {
   const scaleY = geometry.length / 120;
   const scaleXZ = geometry.thickness / 4.5;
   
@@ -145,9 +149,7 @@ function SpinalRod({ showResults, geometry, color }: { showResults: boolean, geo
           </mesh>
           {showResults && i === 1 && (
             <Html position={[0.8, 0, 0]} center>
-              <div className="bg-red-500/90 text-white text-[10px] px-2 py-1 rounded font-mono whitespace-nowrap border border-red-400">
-                MAX STRESS
-              </div>
+              <StressLabel isSafe={isSafe} />
             </Html>
           )}
         </group>
@@ -158,6 +160,7 @@ function SpinalRod({ showResults, geometry, color }: { showResults: boolean, geo
 
 export function Viewport3D({ implantType, material, geometry, showResults, stress, yieldStrength }: ViewportProps) {
   const baseColor = getStressColor(stress, yieldStrength);
+  const isSafe = (stress / yieldStrength) < 0.66;
 
   return (
     <div className="w-full h-full">
@@ -167,10 +170,10 @@ export function Viewport3D({ implantType, material, geometry, showResults, stres
         <directionalLight position={[10, 10, 5]} intensity={1} />
         <directionalLight position={[-10, -10, -5]} intensity={0.5} />
         
-        {implantType === 'hip_stem' && <HipStem showResults={showResults} geometry={geometry} color={baseColor} />}
-        {implantType === 'bone_plate' && <BonePlate showResults={showResults} geometry={geometry} color={baseColor} />}
-        {implantType === 'knee_joint' && <KneeJoint showResults={showResults} geometry={geometry} color={baseColor} />}
-        {implantType === 'spinal_rod' && <SpinalRod showResults={showResults} geometry={geometry} color={baseColor} />}
+        {implantType === 'hip_stem' && <HipStem showResults={showResults} geometry={geometry} color={baseColor} isSafe={isSafe} />}
+        {implantType === 'bone_plate' && <BonePlate showResults={showResults} geometry={geometry} color={baseColor} isSafe={isSafe} />}
+        {implantType === 'knee_joint' && <KneeJoint showResults={showResults} geometry={geometry} color={baseColor} isSafe={isSafe} />}
+        {implantType === 'spinal_rod' && <SpinalRod showResults={showResults} geometry={geometry} color={baseColor} isSafe={isSafe} />}
 
         <Grid infiniteGrid fadeDistance={20} sectionColor="#3f3f46" cellColor="#27272a" />
         <ContactShadows position={[0, -3, 0]} opacity={0.4} scale={10} blur={2} far={4} />
