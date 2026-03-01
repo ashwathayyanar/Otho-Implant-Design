@@ -194,7 +194,16 @@ export default function App() {
                 material={material}
               />
             )}
-            {activeTab === 'results' && <ResultsPanel results={simulationResults} material={material} />}
+            {activeTab === 'results' && (
+              <ResultsPanel 
+                results={simulationResults} 
+                material={material} 
+                patient={patient}
+                geometry={geometry}
+                implantType={implantType}
+                loadCase={loadCase}
+              />
+            )}
           </div>
         </div>
       </div>

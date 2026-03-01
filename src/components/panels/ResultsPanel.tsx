@@ -1,14 +1,19 @@
 import React from 'react';
 import { Download, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
-import { MATERIAL_PROPERTIES, Material } from '../../App';
+import { MATERIAL_PROPERTIES, Material, PatientData, GeometryData, ImplantType, LoadCase } from '../../App';
+import { jsPDF } from 'jspdf';
 
 interface Props {
   results: any;
   material: Material;
+  patient: PatientData;
+  geometry: GeometryData;
+  implantType: ImplantType;
+  loadCase: LoadCase;
 }
 
-export function ResultsPanel({ results, material }: Props) {
+export function ResultsPanel({ results, material, patient, geometry, implantType, loadCase }: Props) {
   if (!results) {
     return (
       <div className="p-6 flex flex-col items-center justify-center h-full text-center gap-4">
@@ -26,6 +31,70 @@ export function ResultsPanel({ results, material }: Props) {
   const yieldStrength = MATERIAL_PROPERTIES[material].yield;
   const safetyFactor = yieldStrength / results.maxStress;
   const isSafe = safetyFactor >= 1.5;
+
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
+    
+    // Header
+    doc.setFontSize(22);
+    doc.setTextColor(16, 185, 129); // Emerald 500
+    doc.text('OrthoFEA Simulation Report', 20, 20);
+    
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, 20, 28);
+    
+    // 1. Configuration Details
+    doc.setFontSize(14);
+    doc.setTextColor(0, 0, 0);
+    doc.text('1. Configuration Details', 20, 45);
+    
+    doc.setFontSize(11);
+    doc.setTextColor(50, 50, 50);
+    doc.text(`Implant Type: ${implantType.replace('_', ' ').toUpperCase()}`, 25, 55);
+    doc.text(`Material: ${MATERIAL_PROPERTIES[material].name} (${material})`, 25, 63);
+    doc.text(`Load Case: ${loadCase.toUpperCase()}`, 25, 71);
+    
+    doc.text(`Patient Age: ${patient.age} years`, 120, 55);
+    doc.text(`Patient Weight: ${patient.weight} kg`, 120, 63);
+    
+    doc.text(`Geometry: ${geometry.length.toFixed(1)}L x ${geometry.width.toFixed(1)}W x ${geometry.thickness.toFixed(1)}T mm`, 25, 79);
+    
+    // 2. Simulation Results
+    doc.setFontSize(14);
+    doc.setTextColor(0, 0, 0);
+    doc.text('2. Simulation Results', 20, 95);
+    
+    doc.setFontSize(11);
+    if (isSafe) {
+      doc.setTextColor(16, 185, 129); // Green
+      doc.text('Status: SAFE (Meets standard criteria)', 25, 105);
+    } else {
+      doc.setTextColor(239, 68, 68); // Red
+      doc.text('Status: RISK DETECTED (Below recommended threshold)', 25, 105);
+    }
+    
+    doc.setTextColor(50, 50, 50);
+    doc.text(`Safety Factor: ${safetyFactor.toFixed(2)} (Target: >= 1.5)`, 25, 115);
+    
+    doc.text(`Maximum Stress: ${results.maxStress.toFixed(1)} MPa`, 25, 125);
+    doc.text(`Allowable Yield Stress: ${yieldStrength} MPa`, 25, 133);
+    doc.text(`Maximum Deformation: ${results.maxDeformation.toFixed(3)} mm`, 25, 141);
+    doc.text(`Estimated Fatigue Life: ${(results.fatigueLife / 1000000).toFixed(2)} Million cycles`, 25, 149);
+    doc.text(`Implant Weight: ${results.weight.toFixed(1)} g`, 25, 157);
+    
+    if (results.isOptimized) {
+      doc.setTextColor(16, 185, 129);
+      doc.text(`Optimization Note: Reduced stress from ${results.originalStress.toFixed(1)} MPa to ${results.maxStress.toFixed(1)} MPa`, 25, 169);
+    }
+    
+    // Footer
+    doc.setFontSize(9);
+    doc.setTextColor(150, 150, 150);
+    doc.text('OrthoFEA Web Prototype - Not for clinical diagnostic use.', 20, 280);
+    
+    doc.save(`OrthoFEA_Report_${implantType}_${new Date().getTime()}.pdf`);
+  };
 
   const chartData = results.isOptimized ? [
     { name: 'Original', stress: results.originalStress, fill: '#ef4444' },
@@ -98,7 +167,10 @@ export function ResultsPanel({ results, material }: Props) {
       </div>
 
       <div className="mt-auto pt-6 space-y-3">
-        <button className="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-100 font-medium py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors">
+        <button 
+          onClick={handleExportPDF}
+          className="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-100 font-medium py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors"
+        >
           <Download size={18} />
           Export Report (PDF)
         </button>
