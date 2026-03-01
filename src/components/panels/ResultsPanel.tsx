@@ -85,7 +85,11 @@ export function ResultsPanel({ results, material, patient, geometry, implantType
     
     if (results.isOptimized) {
       doc.setTextColor(16, 185, 129);
-      doc.text(`Optimization Note: Reduced stress from ${results.originalStress.toFixed(1)} MPa to ${results.maxStress.toFixed(1)} MPa`, 25, 169);
+      if (results.originalStress > results.maxStress) {
+        doc.text(`Optimization Note: Reduced stress from ${results.originalStress.toFixed(1)} MPa to ${results.maxStress.toFixed(1)} MPa`, 25, 169);
+      } else {
+        doc.text(`Optimization Note: Design was already optimal or reached geometric constraints.`, 25, 169);
+      }
     }
     
     // Footer
@@ -96,7 +100,7 @@ export function ResultsPanel({ results, material, patient, geometry, implantType
     doc.save(`OrthoFEA_Report_${implantType}_${new Date().getTime()}.pdf`);
   };
 
-  const chartData = results.isOptimized ? [
+  const chartData = results.isOptimized && results.originalStress > results.maxStress ? [
     { name: 'Original', stress: results.originalStress, fill: '#ef4444' },
     { name: 'Optimized', stress: results.maxStress, fill: '#22c55e' }
   ] : [

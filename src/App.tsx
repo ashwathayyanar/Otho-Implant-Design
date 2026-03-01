@@ -40,20 +40,73 @@ export const LOAD_MULTIPLIERS: Record<LoadCase, number> = {
 };
 
 // Helper to calculate estimated stress based on parameters
-export const calculateStress = (geom: GeometryData, pat: PatientData, load: LoadCase) => {
-  // Bone quality degrades with age after 30
-  const boneQuality = Math.max(0.5, 1.0 - Math.max(0, pat.age - 30) * 0.008);
-  const force = pat.weight * 9.81 * LOAD_MULTIPLIERS[load];
-  const crossSectionArea = geom.width * geom.thickness;
+export const calculateStress = (geom: GeometryData, pat: PatientData, load: LoadCase, implantType: ImplantType, material: Material) => {
+  // 1. Calculate Force (Newtons)
+  const bodyWeightN = pat.weight * 9.81;
+  const force = bodyWeightN * LOAD_MULTIPLIERS[load];
+
+  // 2. Bone Quality & Load Sharing (Stress Shielding)
+  // Cortical bone modulus decreases with age and osteoporosis
+  const baseBoneModulus = 18; // GPa
+  const boneQuality = Math.max(0.4, 1.0 - Math.max(0, pat.age - 40) * 0.01);
+  const effectiveBoneModulus = baseBoneModulus * boneQuality;
   
-  // Simplified bending/axial stress model with stress concentration factor
-  const nominalStress = force / crossSectionArea;
-  const stressConcentration = 2.5; 
+  const implantModulus = parseFloat(MATERIAL_PROPERTIES[material].e); // e.g., "114 GPa" -> 114
   
-  // Lower bone quality means less load sharing by bone, more load on implant
-  const loadSharingFactor = 1 / boneQuality; 
-  
-  return nominalStress * stressConcentration * loadSharingFactor;
+  // Load sharing factor: stiffer implant takes more load (Composite beam theory approximation)
+  const modularRatio = implantModulus / effectiveBoneModulus;
+  const loadSharingFactor = Math.min(0.95, 0.4 + (modularRatio * 0.03)); 
+
+  const effectiveForce = force * loadSharingFactor;
+
+  // 3. Biomechanical Stress Calculation based on Implant Type
+  let maxVonMises = 0;
+
+  if (implantType === 'hip_stem') {
+    // Hip stem experiences severe bending due to femoral head offset (approx 40mm)
+    const offset = 40; 
+    const bendingMoment = effectiveForce * offset; 
+    const I = (geom.width * Math.pow(geom.thickness, 3)) / 12; // Area moment of inertia
+    const c = geom.thickness / 2; 
+    const bendingStress = (bendingMoment * c) / I;
+    const axialStress = effectiveForce / (geom.width * geom.thickness);
+    
+    // Von Mises approximation for combined loading
+    maxVonMises = Math.sqrt(Math.pow(bendingStress + axialStress, 2) + 3 * Math.pow(axialStress * 0.2, 2));
+    
+  } else if (implantType === 'bone_plate') {
+    // Bone plate experiences bending across the fracture gap
+    const gap = 15; // mm
+    const bendingMoment = effectiveForce * gap;
+    const I = (geom.width * Math.pow(geom.thickness, 3)) / 12;
+    const c = geom.thickness / 2;
+    const bendingStress = (bendingMoment * c) / I;
+    
+    // Stress concentration at screw holes (Kt ~ 2.8)
+    const Kt = 2.8;
+    maxVonMises = bendingStress * Kt;
+
+  } else if (implantType === 'spinal_rod') {
+    // Spinal rod experiences bending and axial compression
+    const momentArm = 25; // mm
+    const bendingMoment = effectiveForce * momentArm;
+    const radius = geom.thickness / 2;
+    const I = (Math.PI * Math.pow(radius, 4)) / 4;
+    const c = radius;
+    const bendingStress = (bendingMoment * c) / I;
+    maxVonMises = bendingStress;
+
+  } else if (implantType === 'knee_joint') {
+    // Knee joint is primarily compressive bearing stress
+    const contactArea = geom.width * geom.length * 0.3; 
+    const compressiveStress = effectiveForce / contactArea;
+    // Hertzian contact stress approximation multiplier
+    maxVonMises = compressiveStress * 8.0; 
+  }
+
+  // Calibration factor to match realistic clinical FEA values (e.g., 150-300 MPa for Ti6Al4V hips)
+  const calibrationFactor = 0.65; 
+  return maxVonMises * calibrationFactor;
 };
 
 // Helper to calculate estimated weight of the implant
@@ -76,7 +129,7 @@ export default function App() {
   const [simulationResults, setSimulationResults] = useState<any>(null);
   const [optimizationHistory, setOptimizationHistory] = useState<any[] | null>(null);
 
-  const currentStress = useMemo(() => calculateStress(geometry, patient, loadCase), [geometry, patient, loadCase]);
+  const currentStress = useMemo(() => calculateStress(geometry, patient, loadCase, implantType, material), [geometry, patient, loadCase, implantType, material]);
   const currentWeight = useMemo(() => calculateWeight(geometry, material), [geometry, material]);
 
   const handleSimulate = () => {
@@ -85,8 +138,8 @@ export default function App() {
       setIsSimulating(false);
       setSimulationResults({
         maxStress: currentStress,
-        minStress: currentStress * 0.15,
-        maxDeformation: (currentStress / parseInt(MATERIAL_PROPERTIES[material].e)) * geometry.length * 0.1,
+        minStress: currentStress * 0.12, // Realistic minimum stress in unloaded regions
+        maxDeformation: (currentStress / parseInt(MATERIAL_PROPERTIES[material].e)) * geometry.length * 0.15,
         fatigueLife: Math.max(10000, Math.floor(1e8 * Math.pow(MATERIAL_PROPERTIES[material].yield / currentStress, 3))),
         weight: currentWeight,
         isOptimized: false
@@ -100,7 +153,7 @@ export default function App() {
     
     setTimeout(() => {
       let currentGeom = { ...geometry };
-      let stress = calculateStress(currentGeom, patient, loadCase);
+      let stress = calculateStress(currentGeom, patient, loadCase, implantType, material);
       const targetStress = MATERIAL_PROPERTIES[material].yield / 1.5; // Safety Factor of 1.5
       
       const history = [];
@@ -113,11 +166,13 @@ export default function App() {
 
       let iteration = 1;
       // Iterative Optimization Loop
-      while (stress > targetStress && currentGeom.thickness < 20 && iteration < 20) {
+      while (stress > targetStress && currentGeom.thickness < 25 && iteration < 30) {
         // Increase dimensions to reduce stress
         currentGeom.thickness += 0.5;
-        currentGeom.width += 0.5;
-        stress = calculateStress(currentGeom, patient, loadCase);
+        if (implantType !== 'spinal_rod') {
+          currentGeom.width += 0.5;
+        }
+        stress = calculateStress(currentGeom, patient, loadCase, implantType, material);
         
         history.push({ 
           iteration, 
@@ -132,8 +187,8 @@ export default function App() {
       setOptimizationHistory(history);
       setSimulationResults({
         maxStress: stress,
-        minStress: stress * 0.15,
-        maxDeformation: (stress / parseInt(MATERIAL_PROPERTIES[material].e)) * currentGeom.length * 0.1,
+        minStress: stress * 0.12,
+        maxDeformation: (stress / parseInt(MATERIAL_PROPERTIES[material].e)) * currentGeom.length * 0.15,
         fatigueLife: Math.max(10000, Math.floor(1e8 * Math.pow(MATERIAL_PROPERTIES[material].yield / stress, 3))),
         weight: calculateWeight(currentGeom, material),
         isOptimized: true,
