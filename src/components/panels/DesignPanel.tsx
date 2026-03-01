@@ -12,13 +12,15 @@ interface Props {
   setGeometry: (data: GeometryData) => void;
   currentStress: number;
   yieldStrength: number;
+  currentWeight: number;
 }
 
 export function DesignPanel({ 
   implantType, setImplantType, 
   patient, setPatient, 
   geometry, setGeometry,
-  currentStress, yieldStrength
+  currentStress, yieldStrength,
+  currentWeight
 }: Props) {
   const implants: { id: ImplantType; label: string; desc: string }[] = [
     { id: 'hip_stem', label: 'Hip Stem', desc: 'Femoral component for total hip arthroplasty' },
@@ -98,7 +100,12 @@ export function DesignPanel({
 
       {/* Geometry Parameters */}
       <div className="flex flex-col gap-3 pt-2 border-t border-zinc-800">
-        <h3 className="text-xs font-mono text-zinc-500 uppercase tracking-wider">Implant Geometry</h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-mono text-zinc-500 uppercase tracking-wider">Implant Geometry</h3>
+          <span className="text-xs font-mono bg-zinc-800 text-zinc-300 px-2 py-1 rounded">
+            Weight: {currentWeight.toFixed(1)} g
+          </span>
+        </div>
         
         <div className="space-y-4">
           <div className="space-y-2">

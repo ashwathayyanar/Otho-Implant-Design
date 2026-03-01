@@ -182,6 +182,7 @@ export default function App() {
                 setGeometry={setGeometry}
                 currentStress={currentStress}
                 yieldStrength={MATERIAL_PROPERTIES[material].yield}
+                currentWeight={currentWeight}
               />
             )}
             {activeTab === 'material' && <MaterialPanel material={material} setMaterial={setMaterial} />}
