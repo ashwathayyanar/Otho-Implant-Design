@@ -40,7 +40,7 @@ export const LOAD_MULTIPLIERS: Record<LoadCase, number> = {
 };
 
 // Helper to calculate estimated stress based on parameters
-export const calculateStress = (geom: GeometryData, pat: PatientData, load: LoadCase, implantType: ImplantType, material: Material) => {
+export const calculateStress = (geom: GeometryData, pat: PatientData, load: LoadCase, implantType: ImplantType, material: Material, elementSize: number, adaptiveRefinement: boolean) => {
   // 1. Calculate Force (Newtons)
   const bodyWeightN = pat.weight * 9.81;
   const force = bodyWeightN * LOAD_MULTIPLIERS[load];
@@ -106,7 +106,18 @@ export const calculateStress = (geom: GeometryData, pat: PatientData, load: Load
 
   // Calibration factor to match realistic clinical FEA values (e.g., 150-300 MPa for Ti6Al4V hips)
   const calibrationFactor = 0.65; 
-  return maxVonMises * calibrationFactor;
+  const baseStress = maxVonMises * calibrationFactor;
+
+  // Mesh accuracy modifier: Coarse mesh underestimates peak stress.
+  // Normalize element size between 0 (finest, 0.5mm) and 1 (coarsest, 5.0mm)
+  const coarseness = (elementSize - 0.5) / 4.5; 
+  let underestimation = coarseness * 0.20; // Up to 20% error for coarse mesh
+  
+  if (adaptiveRefinement) {
+    underestimation *= 0.2; // Adaptive refinement reduces error by 80% at stress concentrations
+  }
+  
+  return baseStress * (1.0 - underestimation);
 };
 
 // Helper to calculate estimated weight of the implant
@@ -125,11 +136,14 @@ export default function App() {
   const [patient, setPatient] = useState<PatientData>({ age: 45, weight: 75 });
   const [geometry, setGeometry] = useState<GeometryData>({ length: 120, width: 15, thickness: 4.5 });
   
+  const [elementSize, setElementSize] = useState(2.0);
+  const [adaptiveRefinement, setAdaptiveRefinement] = useState(true);
+  
   const [isSimulating, setIsSimulating] = useState(false);
   const [simulationResults, setSimulationResults] = useState<any>(null);
   const [optimizationHistory, setOptimizationHistory] = useState<any[] | null>(null);
 
-  const currentStress = useMemo(() => calculateStress(geometry, patient, loadCase, implantType, material), [geometry, patient, loadCase, implantType, material]);
+  const currentStress = useMemo(() => calculateStress(geometry, patient, loadCase, implantType, material, elementSize, adaptiveRefinement), [geometry, patient, loadCase, implantType, material, elementSize, adaptiveRefinement]);
   const currentWeight = useMemo(() => calculateWeight(geometry, material), [geometry, material]);
 
   const handleSimulate = () => {
@@ -153,7 +167,7 @@ export default function App() {
     
     setTimeout(() => {
       let currentGeom = { ...geometry };
-      let stress = calculateStress(currentGeom, patient, loadCase, implantType, material);
+      let stress = calculateStress(currentGeom, patient, loadCase, implantType, material, elementSize, adaptiveRefinement);
       const targetStress = MATERIAL_PROPERTIES[material].yield / 1.5; // Safety Factor of 1.5
       
       const history = [];
@@ -172,7 +186,7 @@ export default function App() {
         if (implantType !== 'spinal_rod') {
           currentGeom.width += 0.5;
         }
-        stress = calculateStress(currentGeom, patient, loadCase, implantType, material);
+        stress = calculateStress(currentGeom, patient, loadCase, implantType, material, elementSize, adaptiveRefinement);
         
         history.push({ 
           iteration, 
@@ -241,7 +255,18 @@ export default function App() {
               />
             )}
             {activeTab === 'material' && <MaterialPanel material={material} setMaterial={setMaterial} />}
-            {activeTab === 'fea' && <FEAPanel loadCase={loadCase} setLoadCase={setLoadCase} onSimulate={handleSimulate} isSimulating={isSimulating} />}
+            {activeTab === 'fea' && (
+              <FEAPanel 
+                loadCase={loadCase} 
+                setLoadCase={setLoadCase} 
+                onSimulate={handleSimulate} 
+                isSimulating={isSimulating} 
+                elementSize={elementSize}
+                setElementSize={setElementSize}
+                adaptiveRefinement={adaptiveRefinement}
+                setAdaptiveRefinement={setAdaptiveRefinement}
+              />
+            )}
             {activeTab === 'optimization' && (
               <OptimizationPanel 
                 onOptimize={handleOptimize} 

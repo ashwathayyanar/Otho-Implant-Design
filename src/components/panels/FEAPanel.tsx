@@ -8,9 +8,16 @@ interface Props {
   setLoadCase: (lc: LoadCase) => void;
   onSimulate: () => void;
   isSimulating: boolean;
+  elementSize: number;
+  setElementSize: (size: number) => void;
+  adaptiveRefinement: boolean;
+  setAdaptiveRefinement: (val: boolean) => void;
 }
 
-export function FEAPanel({ loadCase, setLoadCase, onSimulate, isSimulating }: Props) {
+export function FEAPanel({ 
+  loadCase, setLoadCase, onSimulate, isSimulating,
+  elementSize, setElementSize, adaptiveRefinement, setAdaptiveRefinement
+}: Props) {
   const loadCases: { id: LoadCase; label: string; desc: string }[] = [
     { id: 'walking', label: 'Walking Gait', desc: 'Dynamic load profile for normal walking' },
     { id: 'stair', label: 'Stair Climbing', desc: 'High torsion and bending moments' },
@@ -52,12 +59,25 @@ export function FEAPanel({ loadCase, setLoadCase, onSimulate, isSimulating }: Pr
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-zinc-400">Global Element Size</span>
-              <span className="text-zinc-100 font-mono">2.0 mm</span>
+              <span className="text-zinc-100 font-mono">{elementSize.toFixed(1)} mm</span>
             </div>
-            <input type="range" className="w-full accent-emerald-500" defaultValue={2} min={0.5} max={5} step={0.1} />
+            <input 
+              type="range" 
+              className="w-full accent-emerald-500" 
+              value={elementSize} 
+              min={0.5} 
+              max={5} 
+              step={0.1} 
+              onChange={(e) => setElementSize(parseFloat(e.target.value))}
+            />
           </div>
-          <label className="flex items-center gap-2 text-sm text-zinc-300">
-            <input type="checkbox" defaultChecked className="rounded border-zinc-700 bg-zinc-900 text-emerald-500 focus:ring-emerald-500" />
+          <label className="flex items-center gap-2 text-sm text-zinc-300 cursor-pointer">
+            <input 
+              type="checkbox" 
+              checked={adaptiveRefinement}
+              onChange={(e) => setAdaptiveRefinement(e.target.checked)}
+              className="rounded border-zinc-700 bg-zinc-900 text-emerald-500 focus:ring-emerald-500" 
+            />
             Adaptive refinement near holes
           </label>
         </div>
