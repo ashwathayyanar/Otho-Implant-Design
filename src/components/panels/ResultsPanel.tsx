@@ -38,7 +38,7 @@ export function ResultsPanel({ results, material, patient, geometry, implantType
     // Header
     doc.setFontSize(22);
     doc.setTextColor(16, 185, 129); // Emerald 500
-    doc.text('OrthoFEA Simulation Report', 20, 20);
+    doc.text('Ortho FEA Simulation Report', 20, 20);
     
     doc.setFontSize(10);
     doc.setTextColor(100, 100, 100);
@@ -95,9 +95,9 @@ export function ResultsPanel({ results, material, patient, geometry, implantType
     // Footer
     doc.setFontSize(9);
     doc.setTextColor(150, 150, 150);
-    doc.text('OrthoFEA Web Prototype - Not for clinical diagnostic use.', 20, 280);
+    doc.text('Ortho FEA Simulation Suite - Not for clinical diagnostic use.', 20, 280);
     
-    doc.save(`OrthoFEA_Report_${implantType}_${new Date().getTime()}.pdf`);
+    doc.save(`Ortho_FEA_Report_${implantType}_${new Date().getTime()}.pdf`);
   };
 
   const chartData = results.isOptimized && results.originalStress > results.maxStress ? [

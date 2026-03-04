@@ -5,7 +5,7 @@ export function TopBar() {
   return (
     <div className="h-14 bg-zinc-950 border-b border-zinc-800 flex items-center justify-between px-6">
       <div className="flex items-center gap-4">
-        <h1 className="font-semibold text-zinc-100 tracking-tight">OrthoFEA Simulation</h1>
+        <h1 className="font-semibold text-zinc-100 tracking-tight">Ortho EFA <span className="text-emerald-500">Simulation</span></h1>
         <div className="h-4 w-px bg-zinc-800" />
         <span className="text-xs font-mono text-zinc-500">Model</span>
       </div>

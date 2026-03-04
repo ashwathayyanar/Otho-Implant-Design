@@ -1,5 +1,5 @@
 {
-  "name": "Ortho Implant Design Web",
-  "description": "Orthopedic Implant Design and FEA Dashboard Prototype",
+  "name": "Ortho FEA Simulation Suite",
+  "description": "Real-time biomechanical implant optimization and patient-specific FEA dashboard.",
   "requestFramePermissions": []
 }
