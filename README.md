@@ -25,7 +25,7 @@
 
 ## 🧬 Biomechanical Mathematical Model
 
-OrthoOptima utilizes physics-based deterministic models to provide millisecond-fast feedback:
+Ortho FEA utilizes physics-based deterministic models to provide millisecond-fast feedback:
 
 ### 1. Load Synthesis
 Effective force ($F_{eff}$) is calculated using dynamic load multipliers (Walking, Stairs, Jump) and a Stress Shielding Factor derived from the Modular Ratio ($E_{implant} / E_{bone}$).
@@ -47,7 +47,7 @@ Used to predict the onset of plastic deformation by comparing peak stress to the
 ### Installation
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-username/ortho-optima.git
+   git clone https://github.com/ashwathayyanar/Otho-Implant-Design.git
    ```
 2. Install dependencies:
    ```bash
