@@ -2,6 +2,7 @@
 
 **OrthoOptima** is a high-performance, web-based simulation engine designed for the parametric design and biomechanical validation of orthopedic implants. By bridging the gap between clinical patient data and engineering precision, OrthoOptima allows for the creation of patient-specific implants that ensure maximum safety with minimum material weight.
 
+![OrthoOptima Dashboard](https://picsum.photos/seed/ortho-fea/1200/600)
 
 ## 🚀 Key Features
 
@@ -24,7 +25,7 @@
 
 ## 🧬 Biomechanical Mathematical Model
 
-Ortho FEA utilizes physics-based deterministic models to provide millisecond-fast feedback:
+OrthoOptima utilizes physics-based deterministic models to provide millisecond-fast feedback:
 
 ### 1. Load Synthesis
 Effective force ($F_{eff}$) is calculated using dynamic load multipliers (Walking, Stairs, Jump) and a Stress Shielding Factor derived from the Modular Ratio ($E_{implant} / E_{bone}$).
@@ -46,7 +47,7 @@ Used to predict the onset of plastic deformation by comparing peak stress to the
 ### Installation
 1. Clone the repository:
    ```bash
-   git clone https://github.com/ashwathayyanar/Otho-Implant-Design.git
+   git clone https://github.com/your-username/ortho-optima.git
    ```
 2. Install dependencies:
    ```bash
