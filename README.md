@@ -2,6 +2,7 @@
 
 **OrthoOptima** is a high-performance, web-based simulation engine designed for the parametric design and biomechanical validation of orthopedic implants. By bridging the gap between clinical patient data and engineering precision, OrthoOptima allows for the creation of patient-specific implants that ensure maximum safety with minimum material weight.
 
+![OrthoOptima Dashboard](https://picsum.photos/seed/ortho-fea/1200/600)
 
 ## 🚀 Key Features
 
