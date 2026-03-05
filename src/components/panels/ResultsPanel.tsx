@@ -41,93 +41,116 @@ export function ResultsPanel({ results, material, patient, geometry, implantType
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
-    
-    // Helper for colors
-    const colors: Record<string, [number, number, number]> = {
-      primary: [16, 185, 129], // Emerald 500
-      secondary: [39, 39, 42], // Zinc 800
-      text: [39, 39, 42],
-      muted: [113, 113, 122],
-      danger: [239, 68, 68],
-      success: [34, 197, 94]
-    };
 
-    // 1. Header with Background
+    // --- HEADER ---
+    // Dark top banner
     doc.setFillColor(24, 24, 27); // Zinc 900
-    doc.rect(0, 0, pageWidth, 45, 'F');
-    
-    doc.setFontSize(24);
-    doc.setTextColor(255, 255, 255);
+    doc.rect(0, 0, pageWidth, 40, 'F');
+
+    // Title
     doc.setFont('helvetica', 'bold');
-    doc.text('ORTHO FEA REPORT', 20, 25);
-    
+    doc.setFontSize(22);
+    doc.setTextColor(16, 185, 129); // Emerald 500
+    doc.text('Ortho FEA Simulation Report', 15, 22);
+
+    // Subtitle / Date
+    doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
     doc.setTextColor(161, 161, 170); // Zinc 400
-    doc.setFont('helvetica', 'normal');
-    doc.text(`SIMULATION ID: ${Math.random().toString(36).substring(7).toUpperCase()}`, 20, 35);
-    doc.text(`DATE: ${new Date().toLocaleDateString()}`, pageWidth - 60, 35);
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, 15, 30);
 
-    // 2. Patient & Configuration Summary
-    doc.setFontSize(14);
-    doc.setTextColor(0, 0, 0);
+    // --- SECTION 1: CONFIGURATION ---
+    let startY = 55;
     doc.setFont('helvetica', 'bold');
-    doc.text('1. PATIENT & CONFIGURATION', 20, 60);
-    
-    autoTable(doc, {
-      startY: 65,
-      head: [['Parameter', 'Value', 'Details']],
-      body: [
-        ['Patient Profile', `${patient.age}y / ${patient.weight}kg`, 'Standard Orthopedic Load Case'],
-        ['Implant Type', implantType.replace('_', ' ').toUpperCase(), 'Custom Geometry'],
-        ['Material', MATERIAL_PROPERTIES[material].name, `Yield: ${yieldStrength} MPa`],
-        ['Load Case', loadCase.toUpperCase(), 'Static Structural Analysis'],
-        ['Dimensions', `${geometry.length.toFixed(1)} x ${geometry.width.toFixed(1)} x ${geometry.thickness.toFixed(1)}`, 'mm (L x W x T)']
-      ],
-      theme: 'striped',
-      headStyles: { fillColor: colors.primary },
-      margin: { left: 20, right: 20 }
-    });
-
-    // 3. Performance Analysis
-    const finalY = (doc as any).lastAutoTable.finalY || 110;
     doc.setFontSize(14);
-    doc.setTextColor(0, 0, 0);
-    doc.setFont('helvetica', 'bold');
-    doc.text('2. PERFORMANCE ANALYSIS', 20, finalY + 15);
+    doc.setTextColor(24, 24, 27);
+    doc.text('1. Configuration Details', 15, startY);
 
-    // Status Banner
-    doc.setFillColor(isSafe ? 240 : 254, isSafe ? 253 : 242, isSafe ? 244 : 242); // Light green or light red
-    doc.roundedRect(20, finalY + 20, pageWidth - 40, 20, 3, 3, 'F');
+    // Underline
+    startY += 4;
+    doc.setDrawColor(228, 228, 231); // Zinc 200
+    doc.line(15, startY, pageWidth - 15, startY);
+
+    // Config Content
+    startY += 10;
     doc.setFontSize(11);
-    doc.setTextColor(isSafe ? colors.success[0] : colors.danger[0], isSafe ? colors.success[1] : colors.danger[1], isSafe ? colors.success[2] : colors.danger[2]);
-    doc.text(isSafe ? 'DESIGN STATUS: COMPLIANT / SAFE' : 'DESIGN STATUS: CRITICAL RISK DETECTED', 25, finalY + 32);
+    const col1X = 15;
+    const col2X = 110;
+    const valOffsetX = 40;
 
-    // Results Table
-    autoTable(doc, {
-      startY: finalY + 45,
-      head: [['Metric', 'Result', 'Target / Limit', 'Status']],
-      body: [
-        ['Max Von Mises Stress', `${results.maxStress.toFixed(1)} MPa`, `< ${yieldStrength} MPa`, results.maxStress < yieldStrength ? 'PASS' : 'FAIL'],
-        ['Safety Factor', safetyFactor.toFixed(2), '>= 1.50', isSafe ? 'PASS' : 'FAIL'],
-        ['Max Deformation', `${results.maxDeformation.toFixed(3)} mm`, '< 0.500 mm', results.maxDeformation < 0.5 ? 'PASS' : 'WARN'],
-        ['Fatigue Life', `${(results.fatigueLife / 1000000).toFixed(2)}M cycles`, '> 1.00M cycles', results.fatigueLife > 1000000 ? 'PASS' : 'FAIL'],
-        ['Total Weight', `${results.weight.toFixed(1)} g`, 'N/A', '-']
-      ],
-      theme: 'grid',
-      headStyles: { fillColor: colors.secondary },
-      columnStyles: {
-        3: { fontStyle: 'bold' }
-      }
-    });
+    // Helper function for crisp key-value rows
+    const printRow = (label: string, value: string, y: number, x = col1X, offset = valOffsetX) => {
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(113, 113, 122); // Zinc 500
+      doc.text(label, x, y);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(39, 39, 42); // Zinc 800
+      doc.text(value, x + offset, y);
+    };
 
-    // 4. Visual Analysis (Graphs)
-    const finalY2 = (doc as any).lastAutoTable.finalY || 200;
-    doc.setFontSize(14);
-    doc.setTextColor(0, 0, 0);
+    printRow('Implant Type:', implantType.replace('_', ' ').toUpperCase(), startY);
+    printRow('Patient Age:', `${patient.age} years`, startY, col2X, 35);
+    startY += 8;
+    printRow('Material:', `${MATERIAL_PROPERTIES[material].name} (${material})`, startY);
+    printRow('Patient Weight:', `${patient.weight} kg`, startY, col2X, 35);
+    startY += 8;
+    printRow('Load Case:', loadCase.toUpperCase(), startY);
+    startY += 8;
+    printRow('Geometry:', `${geometry.length.toFixed(1)}L x ${geometry.width.toFixed(1)}W x ${geometry.thickness.toFixed(1)}T mm`, startY);
+
+    // --- SECTION 2: SIMULATION RESULTS ---
+    startY += 20;
     doc.setFont('helvetica', 'bold');
-    doc.text('3. VISUAL ANALYSIS', 20, finalY2 + 15);
+    doc.setFontSize(14);
+    doc.setTextColor(24, 24, 27);
+    doc.text('2. Simulation Results', 15, startY);
 
-    let currentYForCharts = finalY2 + 20;
+    // Underline
+    startY += 4;
+    doc.setDrawColor(228, 228, 231);
+    doc.line(15, startY, pageWidth - 15, startY);
+
+    // Dynamic Status Banner
+    startY += 8;
+    if (isSafe) {
+      doc.setFillColor(209, 250, 229); // emerald-100
+      doc.rect(15, startY, pageWidth - 30, 14, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(5, 150, 105); // emerald-600
+      doc.text('Status: SAFE (Meets standard criteria)', 20, startY + 9);
+    } else {
+      doc.setFillColor(254, 226, 226); // red-100
+      doc.rect(15, startY, pageWidth - 30, 14, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(220, 38, 38); // red-600
+      doc.text('Status: RISK DETECTED (Below recommended threshold)', 20, startY + 9);
+    }
+
+    // Results Content
+    startY += 24;
+    printRow('Safety Factor:', `${safetyFactor.toFixed(2)} (Target: >= 1.5)`, startY);
+    startY += 8;
+    printRow('Max Stress:', `${results.maxStress.toFixed(1)} MPa`, startY);
+    printRow('Yield Stress:', `${yieldStrength} MPa`, startY, col2X, 35);
+    startY += 8;
+    printRow('Deformation:', `${results.maxDeformation.toFixed(3)} mm`, startY);
+    printRow('Weight:', `${results.weight.toFixed(1)} g`, startY, col2X, 35);
+    startY += 8;
+    printRow('Fatigue Life:', `${(results.fatigueLife / 1000000).toFixed(2)} Million cycles`, startY);
+
+    // --- SECTION 3: VISUAL ANALYSIS ---
+    startY += 20;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.setTextColor(24, 24, 27);
+    doc.text('3. Visual Analysis', 15, startY);
+
+    // Underline
+    startY += 4;
+    doc.setDrawColor(228, 228, 231);
+    doc.line(15, startY, pageWidth - 15, startY);
+
+    let currentYForCharts = startY + 10;
 
     const captureChart = async (ref: React.RefObject<HTMLDivElement | null>, title: string) => {
       if (ref.current) {
@@ -137,21 +160,21 @@ export function ResultsPanel({ results, material, patient, geometry, implantType
             scale: 2
           });
           const imgData = canvas.toDataURL('image/png');
-          const imgWidth = (pageWidth - 50) / 2;
+          const imgWidth = (pageWidth - 40) / 2;
           const imgHeight = (canvas.height * imgWidth) / canvas.width;
           
-          if (currentYForCharts + imgHeight > pageHeight - 30) {
+          if (currentYForCharts + imgHeight > pageHeight - 40) {
             doc.addPage();
             currentYForCharts = 20;
           }
           
-          doc.setFontSize(10);
-          doc.setTextColor(100, 100, 100);
-          doc.text(title, 20 + (title.includes('Weight') ? imgWidth + 10 : 0), currentYForCharts - 2);
-          doc.addImage(imgData, 'PNG', 20 + (title.includes('Weight') ? imgWidth + 10 : 0), currentYForCharts, imgWidth, imgHeight);
+          doc.setFontSize(9);
+          doc.setTextColor(113, 113, 122);
+          doc.text(title, 15 + (title.includes('Weight') ? imgWidth + 10 : 0), currentYForCharts - 2);
+          doc.addImage(imgData, 'PNG', 15 + (title.includes('Weight') ? imgWidth + 10 : 0), currentYForCharts, imgWidth, imgHeight);
           
           if (title.includes('Weight')) {
-            currentYForCharts += imgHeight + 20;
+            currentYForCharts += imgHeight + 15;
           }
         } catch (e) {
           console.error('Failed to capture chart', e);
@@ -162,39 +185,33 @@ export function ResultsPanel({ results, material, patient, geometry, implantType
     await captureChart(chartRef, 'STRESS COMPARISON (MPa)');
     await captureChart(weightChartRef, 'WEIGHT COMPARISON (g)');
 
-    // 5. Optimization Summary
+    // Optimization Note Panel
     if (results.isOptimized) {
-      if (currentYForCharts > pageHeight - 80) {
+      if (currentYForCharts > pageHeight - 40) {
         doc.addPage();
         currentYForCharts = 20;
       }
+      doc.setFillColor(244, 244, 245); // zinc-100
+      doc.rect(15, currentYForCharts, pageWidth - 30, 12, 'F');
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(10);
+      doc.setTextColor(5, 150, 105); // emerald-600
       
-      doc.setFontSize(14);
-      doc.setTextColor(0, 0, 0);
-      doc.setFont('helvetica', 'bold');
-      doc.text('4. OPTIMIZATION SUMMARY', 20, currentYForCharts + 10);
-
-      autoTable(doc, {
-        startY: currentYForCharts + 15,
-        head: [['Metric', 'Original', 'Optimized', 'Improvement']],
-        body: [
-          ['Peak Stress', `${results.originalStress.toFixed(1)} MPa`, `${results.maxStress.toFixed(1)} MPa`, `${(((results.originalStress - results.maxStress) / results.originalStress) * 100).toFixed(1)}%`],
-          ['Implant Weight', `${results.originalWeight.toFixed(1)} g`, `${results.weight.toFixed(1)} g`, `${(((results.originalWeight - results.weight) / results.originalWeight) * 100).toFixed(1)}%`],
-          ['Safety Factor', (yieldStrength / results.originalStress).toFixed(2), (yieldStrength / results.maxStress).toFixed(2), `${(((yieldStrength / results.maxStress - yieldStrength / results.originalStress) / (yieldStrength / results.originalStress)) * 100).toFixed(1)}%`]
-        ],
-        theme: 'striped',
-        headStyles: { fillColor: colors.primary }
-      });
+      if (results.originalStress > results.maxStress) {
+        doc.text(`Optimization Note: Reduced stress from ${results.originalStress.toFixed(1)} MPa to ${results.maxStress.toFixed(1)} MPa`, 20, currentYForCharts + 8);
+      } else {
+        doc.text(`Optimization Note: Design was already optimal or reached geometric constraints.`, 20, currentYForCharts + 8);
+      }
     }
 
-    // Footer
-    const footerY = pageHeight - 15;
-    doc.setFontSize(8);
-    doc.setTextColor(150, 150, 150);
-    doc.text('CONFIDENTIAL - ORTHO FEA SIMULATION SUITE', 20, footerY);
-    doc.text(`Page 1 of 1`, pageWidth - 35, footerY);
-    doc.text('Disclaimer: For research and engineering validation only. Not for clinical diagnosis.', pageWidth / 2, footerY, { align: 'center' });
-
+    // --- FOOTER ---
+    doc.setDrawColor(228, 228, 231);
+    doc.line(15, pageHeight - 20, pageWidth - 15, pageHeight - 20);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(161, 161, 170); // zinc-400
+    doc.text('Ortho FEA Simulation Suite - Not for clinical diagnostic use.', 15, pageHeight - 13);
+    
     doc.save(`Ortho_FEA_Report_${implantType}_${new Date().getTime()}.pdf`);
   };
 
