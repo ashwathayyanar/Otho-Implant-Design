@@ -260,7 +260,13 @@ export default function App() {
                 currentWeight={currentWeight}
               />
             )}
-            {activeTab === 'material' && <MaterialPanel material={material} setMaterial={setMaterial} />}
+            {activeTab === 'material' && (
+              <MaterialPanel 
+                material={material} 
+                setMaterial={setMaterial} 
+                currentWeight={currentWeight} 
+              />
+            )}
             {activeTab === 'fea' && (
               <FEAPanel 
                 loadCase={loadCase} 
