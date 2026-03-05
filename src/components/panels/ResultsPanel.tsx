@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { Download, AlertTriangle, CheckCircle2, FileText } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, LineChart, Line, Legend, AreaChart, Area, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
 import { MATERIAL_PROPERTIES, Material, PatientData, GeometryData, ImplantType, LoadCase } from '../../App';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -16,7 +16,7 @@ interface Props {
   history?: any[];
 }
 
-export function ResultsPanel({ results, material, patient, geometry, implantType, loadCase }: Props) {
+export function ResultsPanel({ results, material, patient, geometry, implantType, loadCase, history }: Props) {
   const chartRef = useRef<HTMLDivElement>(null);
   const weightChartRef = useRef<HTMLDivElement>(null);
 
@@ -287,6 +287,14 @@ export function ResultsPanel({ results, material, patient, geometry, implantType
     { name: 'Current Design', weight: results.weight, fill: '#22c55e' }
   ];
 
+  const radarData = [
+    { subject: 'Stress', A: Math.min(100, (results.maxStress / yieldStrength) * 100), fullMark: 100 },
+    { subject: 'Weight', A: Math.min(100, (results.weight / 500) * 100), fullMark: 100 },
+    { subject: 'Deform', A: Math.min(100, (results.maxDeformation / 0.5) * 100), fullMark: 100 },
+    { subject: 'Fatigue', A: Math.min(100, (1 - results.fatigueLife / 1e8) * 100), fullMark: 100 },
+    { subject: 'Safety', A: Math.min(100, (1.5 / safetyFactor) * 100), fullMark: 100 },
+  ];
+
   return (
     <div className="p-6 flex flex-col gap-6">
       <div>
@@ -329,22 +337,23 @@ export function ResultsPanel({ results, material, patient, geometry, implantType
         </div>
 
         <div 
-          ref={weightChartRef} 
           className="p-4 rounded-xl h-48"
+          ref={weightChartRef}
           style={{ backgroundColor: '#18181b', border: '1px solid #27272a' }}
         >
-          <div className="text-xs font-mono text-zinc-500 uppercase mb-2">Weight Comparison (g)</div>
+          <div className="text-xs font-mono text-zinc-500 uppercase mb-2">Performance Profile</div>
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={weightData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
-              <XAxis dataKey="name" stroke="#71717a" fontSize={10} tickLine={false} axisLine={false} />
-              <YAxis stroke="#71717a" fontSize={10} tickLine={false} axisLine={false} />
-              <Tooltip 
-                cursor={{fill: '#27272a'}}
-                contentStyle={{ backgroundColor: '#18181b', border: '1px solid #27272a', borderRadius: '8px' }}
+            <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
+              <PolarGrid stroke="#27272a" />
+              <PolarAngleAxis dataKey="subject" stroke="#71717a" fontSize={8} />
+              <Radar
+                name="Performance"
+                dataKey="A"
+                stroke="#10b981"
+                fill="#10b981"
+                fillOpacity={0.5}
               />
-              <Bar dataKey="weight" radius={[4, 4, 0, 0]} maxBarSize={40} isAnimationActive={false} />
-            </BarChart>
+            </RadarChart>
           </ResponsiveContainer>
         </div>
       </div>
@@ -375,6 +384,68 @@ export function ResultsPanel({ results, material, patient, geometry, implantType
           </div>
         </div>
       </div>
+
+      {history && history.length > 1 && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-medium text-zinc-300">Visual Analysis & Comparison</h3>
+            <div className="text-[10px] font-mono text-zinc-500 uppercase">Optimization Convergence</div>
+          </div>
+          
+          <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={history} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
+                <XAxis 
+                  dataKey="iteration" 
+                  stroke="#71717a" 
+                  fontSize={10} 
+                  tickLine={false} 
+                  axisLine={false}
+                  label={{ value: 'Iteration', position: 'insideBottom', offset: -5, fill: '#71717a', fontSize: 10 }}
+                />
+                <YAxis yAxisId="left" stroke="#71717a" fontSize={10} tickLine={false} axisLine={false} />
+                <YAxis yAxisId="right" orientation="right" stroke="#71717a" fontSize={10} tickLine={false} axisLine={false} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#18181b', border: '1px solid #27272a', borderRadius: '8px' }}
+                  itemStyle={{ fontSize: '10px' }}
+                />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: '10px', paddingTop: '10px' }} />
+                <ReferenceLine yAxisId="left" y={yieldStrength / 1.5} stroke="#eab308" strokeDasharray="3 3" />
+                <Line 
+                  yAxisId="left"
+                  type="monotone" 
+                  dataKey="stress" 
+                  name="Stress (MPa)" 
+                  stroke="#10b981" 
+                  strokeWidth={2} 
+                  dot={false}
+                  activeDot={{ r: 4 }}
+                />
+                <Line 
+                  yAxisId="right"
+                  type="monotone" 
+                  dataKey="weight" 
+                  name="Weight (g)" 
+                  stroke="#3b82f6" 
+                  strokeWidth={2} 
+                  dot={false}
+                  activeDot={{ r: 4 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="bg-zinc-900/50 border border-zinc-800 p-3 rounded-lg">
+            <p className="text-[10px] text-zinc-500 leading-relaxed">
+              The graph above illustrates the multi-objective optimization process. 
+              The <span className="text-emerald-500 font-medium">green line</span> represents the peak Von Mises stress, 
+              which is iteratively reduced to meet the safety threshold (dashed yellow line). 
+              The <span className="text-blue-500 font-medium">blue line</span> tracks the corresponding mass changes.
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="mt-auto pt-6 space-y-3">
         <button 

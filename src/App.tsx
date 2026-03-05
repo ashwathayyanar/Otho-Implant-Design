@@ -24,12 +24,12 @@ export interface GeometryData {
   thickness: number; // mm
 }
 
-export const MATERIAL_PROPERTIES: Record<Material, { name: string; yield: number; density: number; e: string; v: string }> = {
-  'Ti6Al4V': { name: 'Titanium Alloy', yield: 880, density: 4.43, e: '114 GPa', v: '0.34' },
-  'SS316L': { name: 'Stainless Steel', yield: 290, density: 8.00, e: '193 GPa', v: '0.30' },
-  'CoCr': { name: 'Cobalt Chromium', yield: 450, density: 8.30, e: '210 GPa', v: '0.30' },
-  'PEEK': { name: 'PEEK Polymer', yield: 100, density: 1.32, e: '3.6 GPa', v: '0.40' },
-  'BioCeramic': { name: 'Alumina Ceramic', yield: 300, density: 3.95, e: '380 GPa', v: '0.22' },
+export const MATERIAL_PROPERTIES: Record<Material, { name: string; yield: number; density: number; e: string; v: string; pricePerGram: number }> = {
+  'Ti6Al4V': { name: 'Titanium Alloy', yield: 880, density: 4.43, e: '114 GPa', v: '0.34', pricePerGram: 1850 },
+  'SS316L': { name: 'Stainless Steel', yield: 290, density: 8.00, e: '193 GPa', v: '0.30', pricePerGram: 650 },
+  'CoCr': { name: 'Cobalt Chromium', yield: 450, density: 8.30, e: '210 GPa', v: '0.30', pricePerGram: 2400 },
+  'PEEK': { name: 'PEEK Polymer', yield: 100, density: 1.32, e: '3.6 GPa', v: '0.40', pricePerGram: 5200 },
+  'BioCeramic': { name: 'Alumina Ceramic', yield: 300, density: 3.95, e: '380 GPa', v: '0.22', pricePerGram: 3800 },
 };
 
 export const LOAD_MULTIPLIERS: Record<LoadCase, number> = {
@@ -260,7 +260,7 @@ export default function App() {
                 currentWeight={currentWeight}
               />
             )}
-            {activeTab === 'material' && <MaterialPanel material={material} setMaterial={setMaterial} />}
+            {activeTab === 'material' && <MaterialPanel material={material} setMaterial={setMaterial} currentWeight={currentWeight} />}
             {activeTab === 'fea' && (
               <FEAPanel 
                 loadCase={loadCase} 
