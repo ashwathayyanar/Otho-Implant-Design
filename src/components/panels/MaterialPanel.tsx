@@ -9,13 +9,13 @@ interface Props {
 }
 
 export function MaterialPanel({ material, setMaterial, currentWeight }: Props) {
-  // Estimated prices per gram based on medical-grade orthopedic manufacturing averages
+  // Estimated prices per gram in INR (₹) based on medical-grade orthopedic manufacturing averages
   const materials: { id: Material; label: string; e: string; v: string; yield: string; pricePerGram: number }[] = [
-    { id: 'Ti6Al4V', label: 'Titanium Alloy (Ti-6Al-4V)', e: '114 GPa', v: '0.34', yield: '880 MPa', pricePerGram: 15.0 },
-    { id: 'SS316L', label: 'Stainless Steel 316L', e: '193 GPa', v: '0.30', yield: '290 MPa', pricePerGram: 4.0 },
-    { id: 'CoCr', label: 'Cobalt Chromium', e: '210 GPa', v: '0.30', yield: '450 MPa', pricePerGram: 14.0 },
-    { id: 'PEEK', label: 'PEEK Polymer', e: '3.6 GPa', v: '0.40', yield: '100 MPa', pricePerGram: 25.0 },
-    { id: 'BioCeramic', label: 'Alumina Ceramic', e: '380 GPa', v: '0.22', yield: '300 MPa', pricePerGram: 20.0 },
+    { id: 'Ti6Al4V', label: 'Titanium Alloy (Ti-6Al-4V)', e: '114 GPa', v: '0.34', yield: '880 MPa', pricePerGram: 1250 },
+    { id: 'SS316L', label: 'Stainless Steel 316L', e: '193 GPa', v: '0.30', yield: '290 MPa', pricePerGram: 340 },
+    { id: 'CoCr', label: 'Cobalt Chromium', e: '210 GPa', v: '0.30', yield: '450 MPa', pricePerGram: 1190 },
+    { id: 'PEEK', label: 'PEEK Polymer', e: '3.6 GPa', v: '0.40', yield: '100 MPa', pricePerGram: 2125 },
+    { id: 'BioCeramic', label: 'Alumina Ceramic', e: '380 GPa', v: '0.22', yield: '300 MPa', pricePerGram: 1700 },
   ];
 
   return (
@@ -51,7 +51,8 @@ export function MaterialPanel({ material, setMaterial, currentWeight }: Props) {
                     ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" 
                     : "bg-zinc-800 text-zinc-300 border-zinc-700"
                 )}>
-                  ${estimatedPrice.toFixed(2)}
+                  {/* Formatted as INR currency */}
+                  ₹{estimatedPrice.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2 text-xs">
@@ -69,7 +70,7 @@ export function MaterialPanel({ material, setMaterial, currentWeight }: Props) {
                 </div>
                 <div>
                   <span className="text-zinc-500 block">Est. Cost/g</span>
-                  <span className="text-zinc-300 font-mono">${mat.pricePerGram.toFixed(2)}</span>
+                  <span className="text-zinc-300 font-mono">₹{mat.pricePerGram}</span>
                 </div>
               </div>
             </button>
