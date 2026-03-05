@@ -84,14 +84,6 @@ export function OptimizationPanel({ onOptimize, isSimulating, history, material 
                   <span className="text-emerald-400">{history[history.length - 1].geom.width.toFixed(1)} mm</span>
                 </div>
               </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-zinc-500">Length</span>
-                <div className="flex items-center gap-2 font-mono">
-                  <span className="text-zinc-400">{history[0].geom.length.toFixed(1)}</span>
-                  <ArrowRight size={12} className="text-zinc-600" />
-                  <span className="text-emerald-400">{history[history.length - 1].geom.length.toFixed(1)} mm</span>
-                </div>
-              </div>
               <div className="flex justify-between items-center text-sm pt-2 border-t border-zinc-800">
                 <span className="text-zinc-500">Weight</span>
                 <div className="flex items-center gap-2 font-mono">
