@@ -23,6 +23,14 @@ const getStressColor = (stress: number, yieldStrength: number) => {
   return "#ef4444"; // Red
 };
 
+const MATERIAL_APPEARANCE: Record<Material, { color: string; metalness: number; roughness: number }> = {
+  'Ti6Al4V': { color: '#8a8d8f', metalness: 0.9, roughness: 0.3 },
+  'SS316L': { color: '#d1d5db', metalness: 0.9, roughness: 0.1 },
+  'CoCr': { color: '#b0b8c1', metalness: 1.0, roughness: 0.05 },
+  'PEEK': { color: '#d2b48c', metalness: 0.0, roughness: 0.6 },
+  'BioCeramic': { color: '#f8fafc', metalness: 0.0, roughness: 0.2 },
+};
+
 function StressLabel({ ratio }: { ratio: number }) {
   if (ratio < 0.66) {
     return (
@@ -51,7 +59,7 @@ function StressLabel({ ratio }: { ratio: number }) {
   }
 }
 
-function HipStem({ showResults, geometry, color, ratio }: { showResults: boolean, geometry: GeometryData, color: string, ratio: number }) {
+function HipStem({ showResults, geometry, color, ratio, appearance }: { showResults: boolean, geometry: GeometryData, color: string, ratio: number, appearance: any }) {
   const group = useRef<THREE.Group>(null);
   
   // Scale based on parametric geometry
@@ -64,12 +72,20 @@ function HipStem({ showResults, geometry, color, ratio }: { showResults: boolean
       {/* Stem */}
       <mesh position={[0, -2, 0]} rotation={[0, 0, 0.1]}>
         <cylinderGeometry args={[0.3, 0.1, 4, 32]} />
-        <meshStandardMaterial color={showResults ? color : "#a0a0a0"} metalness={0.8} roughness={0.2} />
+        <meshStandardMaterial 
+          color={showResults ? color : appearance.color} 
+          metalness={showResults ? 0.8 : appearance.metalness} 
+          roughness={showResults ? 0.2 : appearance.roughness} 
+        />
       </mesh>
       {/* Neck (High Stress Area) */}
       <mesh position={[0.4, 0.5, 0]} rotation={[0, 0, -0.8]}>
         <cylinderGeometry args={[0.2, 0.3, 1.5, 32]} />
-        <meshStandardMaterial color={showResults ? color : "#a0a0a0"} metalness={0.8} roughness={0.2} />
+        <meshStandardMaterial 
+          color={showResults ? color : appearance.color} 
+          metalness={showResults ? 0.8 : appearance.metalness} 
+          roughness={showResults ? 0.2 : appearance.roughness} 
+        />
         {showResults && (
           <Html position={[0.5, 0.5, 0]} center>
             <StressLabel ratio={ratio} />
@@ -79,7 +95,11 @@ function HipStem({ showResults, geometry, color, ratio }: { showResults: boolean
       {/* Head */}
       <mesh position={[0.9, 1.0, 0]}>
         <sphereGeometry args={[0.5, 32, 32]} />
-        <meshStandardMaterial color={showResults ? "#22c55e" : "#a0a0a0"} metalness={0.9} roughness={0.1} />
+        <meshStandardMaterial 
+          color={showResults ? "#22c55e" : appearance.color} 
+          metalness={showResults ? 0.9 : appearance.metalness} 
+          roughness={showResults ? 0.1 : appearance.roughness} 
+        />
         {showResults && ratio >= 0.66 && (
           <Html position={[0, 0.6, 0]} center>
             <div className="bg-green-500/90 text-white text-[10px] px-2 py-1 rounded font-mono whitespace-nowrap border border-green-400">
@@ -92,7 +112,7 @@ function HipStem({ showResults, geometry, color, ratio }: { showResults: boolean
   );
 }
 
-function BonePlate({ showResults, geometry, color, ratio }: { showResults: boolean, geometry: GeometryData, color: string, ratio: number }) {
+function BonePlate({ showResults, geometry, color, ratio, appearance }: { showResults: boolean, geometry: GeometryData, color: string, ratio: number, appearance: any }) {
   const scaleX = geometry.width / 15;
   const scaleY = geometry.length / 120;
   const scaleZ = geometry.thickness / 4.5;
@@ -101,7 +121,11 @@ function BonePlate({ showResults, geometry, color, ratio }: { showResults: boole
     <group position={[0, 0, 0]} scale={[scaleX, scaleY, scaleZ]}>
       <mesh>
         <boxGeometry args={[1, 4, 0.2]} />
-        <meshStandardMaterial color={showResults ? color : "#a0a0a0"} metalness={0.8} roughness={0.2} />
+        <meshStandardMaterial 
+          color={showResults ? color : appearance.color} 
+          metalness={showResults ? 0.8 : appearance.metalness} 
+          roughness={showResults ? 0.2 : appearance.roughness} 
+        />
       </mesh>
       {/* Holes */}
       {[-1.5, -0.5, 0.5, 1.5].map((y, i) => (
@@ -129,17 +153,25 @@ function BonePlate({ showResults, geometry, color, ratio }: { showResults: boole
   );
 }
 
-function KneeJoint({ showResults, geometry, color, ratio }: { showResults: boolean, geometry: GeometryData, color: string, ratio: number }) {
+function KneeJoint({ showResults, geometry, color, ratio, appearance }: { showResults: boolean, geometry: GeometryData, color: string, ratio: number, appearance: any }) {
   const scale = geometry.width / 15;
   return (
     <group position={[0, 0, 0]} scale={[scale, scale, scale]}>
       <mesh position={[0, 1, 0]}>
         <boxGeometry args={[2, 1, 2]} />
-        <meshStandardMaterial color={showResults ? color : "#a0a0a0"} metalness={0.8} roughness={0.2} />
+        <meshStandardMaterial 
+          color={showResults ? color : appearance.color} 
+          metalness={showResults ? 0.8 : appearance.metalness} 
+          roughness={showResults ? 0.2 : appearance.roughness} 
+        />
       </mesh>
       <mesh position={[0, -1, 0]}>
         <cylinderGeometry args={[1, 0.8, 2, 32]} />
-        <meshStandardMaterial color={showResults ? "#22c55e" : "#a0a0a0"} metalness={0.8} roughness={0.2} />
+        <meshStandardMaterial 
+          color={showResults ? "#22c55e" : appearance.color} 
+          metalness={showResults ? 0.8 : appearance.metalness} 
+          roughness={showResults ? 0.2 : appearance.roughness} 
+        />
       </mesh>
       {showResults && (
         <Html position={[1.2, 1, 0]} center>
@@ -150,7 +182,7 @@ function KneeJoint({ showResults, geometry, color, ratio }: { showResults: boole
   );
 }
 
-function SpinalRod({ showResults, geometry, color, ratio }: { showResults: boolean, geometry: GeometryData, color: string, ratio: number }) {
+function SpinalRod({ showResults, geometry, color, ratio, appearance }: { showResults: boolean, geometry: GeometryData, color: string, ratio: number, appearance: any }) {
   const scaleY = geometry.length / 120;
   const scaleXZ = geometry.thickness / 4.5;
   
@@ -158,13 +190,21 @@ function SpinalRod({ showResults, geometry, color, ratio }: { showResults: boole
     <group position={[0, 0, 0]}>
       <mesh rotation={[0, 0, 0]} scale={[scaleXZ, scaleY, scaleXZ]}>
         <cylinderGeometry args={[0.2, 0.2, 6, 32]} />
-        <meshStandardMaterial color={showResults ? color : "#a0a0a0"} metalness={0.8} roughness={0.2} />
+        <meshStandardMaterial 
+          color={showResults ? color : appearance.color} 
+          metalness={showResults ? 0.8 : appearance.metalness} 
+          roughness={showResults ? 0.2 : appearance.roughness} 
+        />
       </mesh>
       {[-2, 0, 2].map((y, i) => (
         <group key={i} position={[0.3, y * scaleY, 0]}>
           <mesh rotation={[0, 0, Math.PI/2]}>
             <cylinderGeometry args={[0.2, 0.2, 1, 32]} />
-            <meshStandardMaterial color="#a0a0a0" metalness={0.8} roughness={0.2} />
+            <meshStandardMaterial 
+              color={appearance.color} 
+              metalness={appearance.metalness} 
+              roughness={appearance.roughness} 
+            />
           </mesh>
           {showResults && i === 1 && (
             <Html position={[0.8, 0, 0]} center>
@@ -180,6 +220,7 @@ function SpinalRod({ showResults, geometry, color, ratio }: { showResults: boole
 export function Viewport3D({ implantType, material, geometry, showResults, stress, yieldStrength }: ViewportProps) {
   const baseColor = getStressColor(stress, yieldStrength);
   const ratio = stress / yieldStrength;
+  const appearance = MATERIAL_APPEARANCE[material];
 
   return (
     <div className="w-full h-full">
@@ -189,10 +230,10 @@ export function Viewport3D({ implantType, material, geometry, showResults, stres
         <directionalLight position={[10, 10, 5]} intensity={1} />
         <directionalLight position={[-10, -10, -5]} intensity={0.5} />
         
-        {implantType === 'hip_stem' && <HipStem showResults={showResults} geometry={geometry} color={baseColor} ratio={ratio} />}
-        {implantType === 'bone_plate' && <BonePlate showResults={showResults} geometry={geometry} color={baseColor} ratio={ratio} />}
-        {implantType === 'knee_joint' && <KneeJoint showResults={showResults} geometry={geometry} color={baseColor} ratio={ratio} />}
-        {implantType === 'spinal_rod' && <SpinalRod showResults={showResults} geometry={geometry} color={baseColor} ratio={ratio} />}
+        {implantType === 'hip_stem' && <HipStem showResults={showResults} geometry={geometry} color={baseColor} ratio={ratio} appearance={appearance} />}
+        {implantType === 'bone_plate' && <BonePlate showResults={showResults} geometry={geometry} color={baseColor} ratio={ratio} appearance={appearance} />}
+        {implantType === 'knee_joint' && <KneeJoint showResults={showResults} geometry={geometry} color={baseColor} ratio={ratio} appearance={appearance} />}
+        {implantType === 'spinal_rod' && <SpinalRod showResults={showResults} geometry={geometry} color={baseColor} ratio={ratio} appearance={appearance} />}
 
         <Grid infiniteGrid fadeDistance={20} sectionColor="#3f3f46" cellColor="#27272a" />
         <ContactShadows position={[0, -3, 0]} opacity={0.4} scale={10} blur={2} far={4} />
