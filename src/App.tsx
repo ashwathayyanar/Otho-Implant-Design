@@ -289,6 +289,7 @@ export default function App() {
                 geometry={geometry}
                 implantType={implantType}
                 loadCase={loadCase}
+                history={optimizationHistory}
               />
             )}
           </div>
