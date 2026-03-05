@@ -64,6 +64,7 @@ export const calculateStress = (geom: GeometryData, pat: PatientData, load: Load
 
   if (implantType === 'hip_stem') {
     // Hip stem experiences severe bending due to femoral head offset (approx 40mm)
+    // Longer stems distribute load better, reducing peak stress concentrations
     const offset = 40; 
     const bendingMoment = effectiveForce * offset; 
     const I = (geom.width * Math.pow(geom.thickness, 3)) / 12; // Area moment of inertia
@@ -71,8 +72,9 @@ export const calculateStress = (geom: GeometryData, pat: PatientData, load: Load
     const bendingStress = (bendingMoment * c) / I;
     const axialStress = effectiveForce / (geom.width * geom.thickness);
     
-    // Von Mises approximation for combined loading
-    maxVonMises = Math.sqrt(Math.pow(bendingStress + axialStress, 2) + 3 * Math.pow(axialStress * 0.2, 2));
+    // Length factor: longer stems reduce peak stress by better load distribution (simplified)
+    const lengthFactor = Math.max(0.7, 1.2 - (geom.length / 200));
+    maxVonMises = Math.sqrt(Math.pow(bendingStress + axialStress, 2) + 3 * Math.pow(axialStress * 0.2, 2)) * lengthFactor;
     
   } else if (implantType === 'bone_plate') {
     // Bone plate experiences bending across the fracture gap
@@ -83,8 +85,10 @@ export const calculateStress = (geom: GeometryData, pat: PatientData, load: Load
     const bendingStress = (bendingMoment * c) / I;
     
     // Stress concentration at screw holes (Kt ~ 2.8)
+    // Longer plates allow for more screws and better load sharing
+    const lengthFactor = Math.max(0.8, 1.1 - (geom.length / 300));
     const Kt = 2.8;
-    maxVonMises = bendingStress * Kt;
+    maxVonMises = bendingStress * Kt * lengthFactor;
 
   } else if (implantType === 'spinal_rod') {
     // Spinal rod experiences bending and axial compression
@@ -94,7 +98,9 @@ export const calculateStress = (geom: GeometryData, pat: PatientData, load: Load
     const I = (Math.PI * Math.pow(radius, 4)) / 4;
     const c = radius;
     const bendingStress = (bendingMoment * c) / I;
-    maxVonMises = bendingStress;
+    
+    const lengthFactor = Math.max(0.9, 1.05 - (geom.length / 500));
+    maxVonMises = bendingStress * lengthFactor;
 
   } else if (implantType === 'knee_joint') {
     // Knee joint is primarily compressive bearing stress
@@ -180,12 +186,12 @@ export default function App() {
 
       let iteration = 1;
       // Iterative Optimization Loop
-      while (stress > targetStress && currentGeom.thickness < 25 && iteration < 30) {
+      while (stress > targetStress && iteration < 40) {
         // Increase dimensions to reduce stress
-        currentGeom.thickness += 0.5;
-        if (implantType !== 'spinal_rod') {
-          currentGeom.width += 0.5;
-        }
+        if (currentGeom.thickness < 25) currentGeom.thickness += 0.2;
+        if (currentGeom.width < 50) currentGeom.width += 0.2;
+        if (currentGeom.length < 300) currentGeom.length += 1.0;
+        
         stress = calculateStress(currentGeom, patient, loadCase, implantType, material, elementSize, adaptiveRefinement);
         
         history.push({ 

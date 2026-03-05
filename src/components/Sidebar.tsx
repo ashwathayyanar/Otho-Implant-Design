@@ -1,7 +1,7 @@
 import React from 'react';
 import { cn } from '../lib/utils';
 import { Tab } from '../App';
-import { Box, Layers, Activity, Zap, BarChart3 } from 'lucide-react';
+import { Box, Layers, Activity, Zap, BarChart3, Dna } from 'lucide-react';
 
 interface SidebarProps {
   activeTab: Tab;
@@ -20,7 +20,7 @@ export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
   return (
     <div className="w-16 bg-zinc-950 border-r border-zinc-800 flex flex-col items-center py-4 gap-4">
       <div className="w-10 h-10 bg-emerald-500/10 text-emerald-500 rounded-xl flex items-center justify-center mb-4">
-        <Activity size={24} />
+        <Dna size={24} />
       </div>
       {tabs.map((tab) => (
         <button
