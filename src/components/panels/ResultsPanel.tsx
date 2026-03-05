@@ -172,13 +172,45 @@ export function ResultsPanel({ results, material, patient, geometry, implantType
     startY = (doc as any).lastAutoTable.finalY + 15;
     startY = drawSectionHeader('3. Visual Analysis & Comparisons', startY);
 
+    // Add text comparison summary
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(39, 39, 42);
+    if (results.isOptimized) {
+      doc.text(`Comparative analysis between original and optimized designs.`, 15, startY + 5);
+      doc.text(`Stress Reduction: ${((results.originalStress - results.maxStress) / results.originalStress * 100).toFixed(1)}%`, 15, startY + 10);
+      doc.text(`Mass Reduction: ${((results.originalWeight - results.weight) / results.originalWeight * 100).toFixed(1)}%`, 80, startY + 10);
+      startY += 15;
+    } else {
+      doc.text(`Visual representation of the current design performance metrics.`, 15, startY + 5);
+      startY += 10;
+    }
+
     const captureChart = async (ref: React.RefObject<HTMLDivElement | null>, title: string, x: number, y: number, width: number) => {
       if (ref.current) {
         try {
+          // Use a small delay to ensure Recharts has finished rendering/animations
+          await new Promise(resolve => setTimeout(resolve, 100));
+
           const canvas = await html2canvas(ref.current, {
             backgroundColor: '#18181b',
             scale: 2,
-            logging: false
+            logging: false,
+            useCORS: true,
+            allowTaint: true,
+            onclone: (clonedDoc) => {
+              // Fix for oklch colors which html2canvas doesn't support
+              const elements = clonedDoc.getElementsByTagName('*');
+              for (let i = 0; i < elements.length; i++) {
+                const el = elements[i] as HTMLElement;
+                const style = window.getComputedStyle(el);
+                
+                // If background or border uses oklch, replace with a safe fallback
+                if (style.backgroundColor.includes('oklch')) el.style.backgroundColor = '#18181b';
+                if (style.borderColor.includes('oklch')) el.style.borderColor = '#27272a';
+                if (style.color.includes('oklch')) el.style.color = '#a1a1aa';
+              }
+            }
           });
           const imgData = canvas.toDataURL('image/png');
           const imgHeight = (canvas.height * width) / canvas.width;
@@ -275,7 +307,11 @@ export function ResultsPanel({ results, material, patient, geometry, implantType
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div ref={chartRef} className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl h-48">
+        <div 
+          ref={chartRef} 
+          className="p-4 rounded-xl h-48"
+          style={{ backgroundColor: '#18181b', border: '1px solid #27272a' }}
+        >
           <div className="text-xs font-mono text-zinc-500 uppercase mb-2">Stress Comparison (MPa)</div>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -287,12 +323,16 @@ export function ResultsPanel({ results, material, patient, geometry, implantType
                 contentStyle={{ backgroundColor: '#18181b', border: '1px solid #27272a', borderRadius: '8px' }}
               />
               <ReferenceLine y={yieldStrength / 1.5} stroke="#eab308" strokeDasharray="3 3" label={{ position: 'top', value: 'Allowable', fill: '#eab308', fontSize: 8 }} />
-              <Bar dataKey="stress" radius={[4, 4, 0, 0]} maxBarSize={40} />
+              <Bar dataKey="stress" radius={[4, 4, 0, 0]} maxBarSize={40} isAnimationActive={false} />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
-        <div ref={weightChartRef} className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl h-48">
+        <div 
+          ref={weightChartRef} 
+          className="p-4 rounded-xl h-48"
+          style={{ backgroundColor: '#18181b', border: '1px solid #27272a' }}
+        >
           <div className="text-xs font-mono text-zinc-500 uppercase mb-2">Weight Comparison (g)</div>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={weightData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -303,7 +343,7 @@ export function ResultsPanel({ results, material, patient, geometry, implantType
                 cursor={{fill: '#27272a'}}
                 contentStyle={{ backgroundColor: '#18181b', border: '1px solid #27272a', borderRadius: '8px' }}
               />
-              <Bar dataKey="weight" radius={[4, 4, 0, 0]} maxBarSize={40} />
+              <Bar dataKey="weight" radius={[4, 4, 0, 0]} maxBarSize={40} isAnimationActive={false} />
             </BarChart>
           </ResponsiveContainer>
         </div>
