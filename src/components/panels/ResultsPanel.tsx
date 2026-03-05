@@ -153,7 +153,7 @@ export function ResultsPanel({ results, material, patient, geometry, implantType
       startY: startY,
       head: [['Metric', 'Value', 'Unit', 'Assessment']],
       body: [
-        ['Peak Von Mises Stress', results.maxStress.toFixed(2), 'MPa', results.maxStress < yieldStrength ? 'Below Yield' : 'Exceeds Yield'],
+        ['Von Mises Stress', results.maxStress.toFixed(2), 'MPa', results.maxStress < yieldStrength ? 'Below Yield' : 'Exceeds Yield'],
         ['Max Deformation', results.maxDeformation.toFixed(4), 'mm', 'Acceptable'],
         ['Safety Factor', safetyFactor.toFixed(2), '-', isSafe ? 'Optimal' : 'Insufficient'],
         ['Component Weight', results.weight.toFixed(1), 'g', '-'],
