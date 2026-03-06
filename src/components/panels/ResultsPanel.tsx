@@ -156,8 +156,10 @@ export function ResultsPanel({ results, material, patient, geometry, implantType
         ['Von Mises Stress', results.maxStress.toFixed(2), 'MPa', results.maxStress < yieldStrength ? 'Below Yield' : 'Exceeds Yield'],
         ['Max Deformation', results.maxDeformation.toFixed(4), 'mm', 'Acceptable'],
         ['Safety Factor', safetyFactor.toFixed(2), '-', isSafe ? 'Optimal' : 'Insufficient'],
+        ['Bounding Box Volume', results.boundingBoxVolume.toFixed(1), 'mm³', '-'],
         ['Component Weight', results.weight.toFixed(1), 'g', '-'],
         ['Est. Fatigue Life', `${(results.fatigueLife / 1000000).toFixed(2)}M`, 'Cycles', 'High Reliability'],
+        ['Estimated Cost', `INR ${Math.round(results.weight * MATERIAL_PROPERTIES[material].pricePerGram).toLocaleString('en-IN')}`, '-', '-'],
       ],
       theme: 'grid',
       headStyles: { fillColor: [39, 39, 42], textColor: [255, 255, 255], fontSize: 9, fontStyle: 'bold' },
@@ -247,6 +249,7 @@ export function ResultsPanel({ results, material, patient, geometry, implantType
         head: [['Metric', 'Original', 'Optimized', 'Improvement']],
         body: [
           ['Max Stress', `${results.originalStress.toFixed(1)} MPa`, `${results.maxStress.toFixed(1)} MPa`, `${((results.originalStress - results.maxStress) / results.originalStress * 100).toFixed(1)}%`],
+          ['Bounding Box Vol', `${results.originalBoundingBoxVolume.toFixed(1)} mm³`, `${results.boundingBoxVolume.toFixed(1)} mm³`, `${((results.originalBoundingBoxVolume - results.boundingBoxVolume) / results.originalBoundingBoxVolume * 100).toFixed(1)}%`],
           ['Implant Weight', `${results.originalWeight.toFixed(1)} g`, `${results.weight.toFixed(1)} g`, `${((results.originalWeight - results.weight) / results.originalWeight * 100).toFixed(1)}%`],
           ['Safety Factor', `${(yieldStrength / results.originalStress).toFixed(2)}`, `${safetyFactor.toFixed(2)}`, `${((safetyFactor - (yieldStrength / results.originalStress)) / (yieldStrength / results.originalStress) * 100).toFixed(1)}%`],
         ],
@@ -381,6 +384,18 @@ export function ResultsPanel({ results, material, patient, geometry, implantType
           <div className="text-xs font-mono text-zinc-500 uppercase mb-1">Implant Weight</div>
           <div className="text-xl font-medium text-zinc-100">
             {results.weight.toFixed(1)} <span className="text-sm text-zinc-500">g</span>
+          </div>
+        </div>
+        <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl">
+          <div className="text-xs font-mono text-zinc-500 uppercase mb-1">Bounding Box Volume</div>
+          <div className="text-xl font-medium text-zinc-100">
+            {results.boundingBoxVolume.toFixed(0)} <span className="text-sm text-zinc-500">mm³</span>
+          </div>
+        </div>
+        <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl col-span-2">
+          <div className="text-xs font-mono text-zinc-500 uppercase mb-1">Estimated Material Cost</div>
+          <div className="text-xl font-medium text-emerald-400">
+            ₹ {Math.round(results.weight * MATERIAL_PROPERTIES[material].pricePerGram).toLocaleString('en-IN')}
           </div>
         </div>
       </div>

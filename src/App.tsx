@@ -172,6 +172,7 @@ export default function App() {
         maxDeformation: (currentStress / parseInt(MATERIAL_PROPERTIES[material].e)) * geometry.length * 0.15,
         fatigueLife: Math.max(10000, Math.floor(1e8 * Math.pow(MATERIAL_PROPERTIES[material].yield / currentStress, 3))),
         weight: currentWeight,
+        boundingBoxVolume: geometry.length * geometry.width * geometry.thickness,
         isOptimized: false
       });
       setActiveTab('results');
@@ -191,7 +192,8 @@ export default function App() {
         iteration: 0, 
         geom: { ...currentGeom }, 
         stress, 
-        weight: calculateWeight(currentGeom, material, implantType) 
+        weight: calculateWeight(currentGeom, material, implantType),
+        boundingBoxVolume: currentGeom.length * currentGeom.width * currentGeom.thickness
       });
 
       let iteration = 1;
@@ -208,7 +210,8 @@ export default function App() {
           iteration, 
           geom: { ...currentGeom }, 
           stress, 
-          weight: calculateWeight(currentGeom, material, implantType) 
+          weight: calculateWeight(currentGeom, material, implantType),
+          boundingBoxVolume: currentGeom.length * currentGeom.width * currentGeom.thickness
         });
         iteration++;
       }
@@ -221,9 +224,11 @@ export default function App() {
         maxDeformation: (stress / parseInt(MATERIAL_PROPERTIES[material].e)) * currentGeom.length * 0.15,
         fatigueLife: Math.max(10000, Math.floor(1e8 * Math.pow(MATERIAL_PROPERTIES[material].yield / stress, 3))),
         weight: calculateWeight(currentGeom, material, implantType),
+        boundingBoxVolume: currentGeom.length * currentGeom.width * currentGeom.thickness,
         isOptimized: true,
         originalStress: history[0].stress,
-        originalWeight: history[0].weight
+        originalWeight: history[0].weight,
+        originalBoundingBoxVolume: history[0].boundingBoxVolume
       });
       setIsSimulating(false);
     }, 2000);
