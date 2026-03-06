@@ -1,15 +1,16 @@
 import React from 'react';
-import { Material, MATERIAL_PROPERTIES } from '../../App';
+import { Material, MATERIAL_PROPERTIES, GeometryData, calculateWeight, ImplantType } from '../../App';
 import { cn } from '../../lib/utils';
-import { IndianRupee } from 'lucide-react';
+import { IndianRupee, Weight } from 'lucide-react';
 
 interface Props {
   material: Material;
   setMaterial: (mat: Material) => void;
-  currentWeight: number;
+  geometry: GeometryData;
+  implantType: ImplantType;
 }
 
-export function MaterialPanel({ material, setMaterial, currentWeight }: Props) {
+export function MaterialPanel({ material, setMaterial, geometry, implantType }: Props) {
   const materials: { id: Material; label: string; e: string; v: string; yield: string }[] = [
     { id: 'Ti6Al4V', label: 'Titanium Alloy (Ti-6Al-4V)', e: '114 GPa', v: '0.34', yield: '880 MPa' },
     { id: 'SS316L', label: 'Stainless Steel 316L', e: '193 GPa', v: '0.30', yield: '290 MPa' },
@@ -18,17 +19,29 @@ export function MaterialPanel({ material, setMaterial, currentWeight }: Props) {
     { id: 'BioCeramic', label: 'Alumina Ceramic', e: '380 GPa', v: '0.22', yield: '300 MPa' },
   ];
 
+  const currentWeight = calculateWeight(geometry, material, implantType);
+
   return (
     <div className="p-6 flex flex-col gap-6">
-      <div>
-        <h2 className="text-lg font-medium text-zinc-100 mb-1">Material Database</h2>
-        <p className="text-sm text-zinc-400">Assign mechanical properties and estimate costs.</p>
+      <div className="flex justify-between items-start">
+        <div>
+          <h2 className="text-lg font-medium text-zinc-100 mb-1">Material Database</h2>
+          <p className="text-sm text-zinc-400">Assign properties and estimate costs.</p>
+        </div>
+        <div className="flex flex-col items-end">
+          <div className="flex items-center gap-1.5 text-zinc-400 text-xs font-mono uppercase">
+            <Weight size={12} />
+            Current Mass
+          </div>
+          <div className="text-emerald-400 font-mono font-bold">{currentWeight.toFixed(1)}g</div>
+        </div>
       </div>
 
       <div className="grid gap-3">
         {materials.map((mat) => {
           const props = MATERIAL_PROPERTIES[mat.id];
-          const estimatedPrice = props.pricePerGram * currentWeight;
+          const matWeight = calculateWeight(geometry, mat.id, implantType);
+          const estimatedPrice = props.pricePerGram * matWeight;
           
           return (
             <button
@@ -43,9 +56,12 @@ export function MaterialPanel({ material, setMaterial, currentWeight }: Props) {
             >
               <div className="flex justify-between items-start mb-3">
                 <div className="font-medium text-zinc-100">{mat.label}</div>
-                <div className="flex items-center gap-1 text-emerald-400 font-mono text-sm bg-emerald-500/10 px-2 py-0.5 rounded">
-                  <IndianRupee size={12} />
-                  {Math.round(estimatedPrice).toLocaleString('en-IN')}
+                <div className="flex flex-col items-end">
+                  <div className="flex items-center gap-1 text-emerald-400 font-mono text-sm bg-emerald-500/10 px-2 py-0.5 rounded mb-1">
+                    <IndianRupee size={12} />
+                    {Math.round(estimatedPrice).toLocaleString('en-IN')}
+                  </div>
+                  <div className="text-[10px] text-zinc-500 font-mono">{matWeight.toFixed(1)}g</div>
                 </div>
               </div>
               
@@ -55,12 +71,12 @@ export function MaterialPanel({ material, setMaterial, currentWeight }: Props) {
                   <span className="text-zinc-300 font-mono">{mat.e}</span>
                 </div>
                 <div>
-                  <span className="text-zinc-500 block">Poisson's Ratio</span>
-                  <span className="text-zinc-300 font-mono">{mat.v}</span>
-                </div>
-                <div>
                   <span className="text-zinc-500 block">Yield Strength</span>
                   <span className="text-zinc-300 font-mono">{mat.yield}</span>
+                </div>
+                <div>
+                  <span className="text-zinc-500 block">Density</span>
+                  <span className="text-zinc-300 font-mono">{props.density.toFixed(2)} g/cm³</span>
                 </div>
                 <div>
                   <span className="text-zinc-500 block">Rate (per gram)</span>
@@ -75,8 +91,8 @@ export function MaterialPanel({ material, setMaterial, currentWeight }: Props) {
       <div className="bg-zinc-900/50 border border-zinc-800 p-4 rounded-xl">
         <div className="text-xs font-mono text-zinc-500 uppercase mb-2">Cost Calculation Basis</div>
         <p className="text-[10px] text-zinc-500 leading-relaxed">
-          Estimated costs are calculated based on current market rates for medical-grade orthopedic materials in India (INR). 
-          Final pricing depends on manufacturing complexity, sterilization, and clinical certification.
+          Estimated costs are calculated based on material density and current market rates in India. 
+          Note that heavier materials (like Cobalt Chrome) will have higher total costs even if their gram rate is lower.
         </p>
       </div>
     </div>

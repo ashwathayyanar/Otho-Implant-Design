@@ -127,10 +127,20 @@ export const calculateStress = (geom: GeometryData, pat: PatientData, load: Load
 };
 
 // Helper to calculate estimated weight of the implant
-export const calculateWeight = (geom: GeometryData, mat: Material) => {
-  const volume = geom.length * geom.width * geom.thickness; // mm^3
+export const calculateWeight = (geom: GeometryData, mat: Material, type: ImplantType) => {
+  const boundingBoxVolume = geom.length * geom.width * geom.thickness; // mm^3
+  
+  // Volume reduction factors based on typical implant geometries
+  const volumeFactors: Record<ImplantType, number> = {
+    'hip_stem': 0.25,    // Tapered stem + neck + head is much less than bounding box
+    'bone_plate': 0.75,  // Plate with holes
+    'knee_joint': 0.40,  // Complex femoral/tibial component geometry
+    'spinal_rod': 0.65,  // Cylindrical rod (pi * r^2 * h vs w * h * l)
+  };
+
+  const actualVolume = boundingBoxVolume * volumeFactors[type];
   const density = MATERIAL_PROPERTIES[mat].density / 1000; // g/mm^3
-  return volume * density; // grams
+  return actualVolume * density; // grams
 };
 
 export default function App() {
@@ -150,7 +160,7 @@ export default function App() {
   const [optimizationHistory, setOptimizationHistory] = useState<any[] | null>(null);
 
   const currentStress = useMemo(() => calculateStress(geometry, patient, loadCase, implantType, material, elementSize, adaptiveRefinement), [geometry, patient, loadCase, implantType, material, elementSize, adaptiveRefinement]);
-  const currentWeight = useMemo(() => calculateWeight(geometry, material), [geometry, material]);
+  const currentWeight = useMemo(() => calculateWeight(geometry, material, implantType), [geometry, material, implantType]);
 
   const handleSimulate = () => {
     setIsSimulating(true);
@@ -181,7 +191,7 @@ export default function App() {
         iteration: 0, 
         geom: { ...currentGeom }, 
         stress, 
-        weight: calculateWeight(currentGeom, material) 
+        weight: calculateWeight(currentGeom, material, implantType) 
       });
 
       let iteration = 1;
@@ -198,7 +208,7 @@ export default function App() {
           iteration, 
           geom: { ...currentGeom }, 
           stress, 
-          weight: calculateWeight(currentGeom, material) 
+          weight: calculateWeight(currentGeom, material, implantType) 
         });
         iteration++;
       }
@@ -210,7 +220,7 @@ export default function App() {
         minStress: stress * 0.12,
         maxDeformation: (stress / parseInt(MATERIAL_PROPERTIES[material].e)) * currentGeom.length * 0.15,
         fatigueLife: Math.max(10000, Math.floor(1e8 * Math.pow(MATERIAL_PROPERTIES[material].yield / stress, 3))),
-        weight: calculateWeight(currentGeom, material),
+        weight: calculateWeight(currentGeom, material, implantType),
         isOptimized: true,
         originalStress: history[0].stress,
         originalWeight: history[0].weight
@@ -260,7 +270,7 @@ export default function App() {
                 currentWeight={currentWeight}
               />
             )}
-            {activeTab === 'material' && <MaterialPanel material={material} setMaterial={setMaterial} currentWeight={currentWeight} />}
+            {activeTab === 'material' && <MaterialPanel material={material} setMaterial={setMaterial} geometry={geometry} implantType={implantType} />}
             {activeTab === 'fea' && (
               <FEAPanel 
                 loadCase={loadCase} 
