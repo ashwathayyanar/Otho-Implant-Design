@@ -3,7 +3,7 @@ import { Download, AlertTriangle, CheckCircle2, FileText } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, LineChart, Line, Legend, AreaChart, Area, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
 import { MATERIAL_PROPERTIES, Material, PatientData, GeometryData, ImplantType, LoadCase } from '../../App';
 import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
+import * as htmlToImage from 'html-to-image';
 import autoTable from 'jspdf-autotable';
 
 interface Props {
@@ -140,11 +140,13 @@ export function ResultsPanel({ results, material, patient, geometry, implantType
 
     printGridRow('Patient Age:', `${patient.age} Years`, 'Patient Weight:', `${patient.weight} kg`, startY);
     startY += 8;
-    printGridRow('Implant Type:', implantType.replace('_', ' ').toUpperCase(), 'Material:', MATERIAL_PROPERTIES[material].name, startY);
+    printGridRow('Bone Density:', `${patient.boneDensity.toFixed(2)} g/cm³`, 'Material:', MATERIAL_PROPERTIES[material].name, startY);
     startY += 8;
-    printGridRow('Load Case:', loadCase.toUpperCase(), 'Simulation Mode:', results.isOptimized ? 'AUTO-OPTIMIZED' : 'STANDARD', startY);
+    printGridRow('Implant Type:', implantType.replace('_', ' ').toUpperCase(), 'Simulation Mode:', results.isOptimized ? 'AUTO-OPTIMIZED' : 'STANDARD', startY);
     startY += 8;
-    printGridRow('Geometry (L/W/T):', `${geometry.length.toFixed(1)} / ${geometry.width.toFixed(1)} / ${geometry.thickness.toFixed(1)} mm`, 'Yield Strength:', `${yieldStrength} MPa`, startY);
+    printGridRow('Load Case:', loadCase.toUpperCase(), 'Yield Strength:', `${yieldStrength} MPa`, startY);
+    startY += 8;
+    printGridRow('Geometry (L/W/T):', `${geometry.length.toFixed(1)} / ${geometry.width.toFixed(1)} / ${geometry.thickness.toFixed(1)} mm`, '', '', startY);
 
     // --- SECTION 2: PERFORMANCE METRICS ---
     startY = drawSectionHeader('2. Performance Metrics', startY + 15);
@@ -172,6 +174,13 @@ export function ResultsPanel({ results, material, patient, geometry, implantType
 
     // --- SECTION 3: VISUAL ANALYSIS ---
     startY = (doc as any).lastAutoTable.finalY + 15;
+    
+    // Check if there's enough space for the charts (approx 120 units)
+    if (startY > pageHeight - 120) {
+      doc.addPage();
+      startY = 20;
+    }
+
     startY = drawSectionHeader('3. Visual Analysis & Comparisons', startY);
 
     // Add text comparison summary
@@ -180,8 +189,15 @@ export function ResultsPanel({ results, material, patient, geometry, implantType
     doc.setTextColor(39, 39, 42);
     if (results.isOptimized) {
       doc.text(`Comparative analysis between original and optimized designs.`, 15, startY + 5);
-      doc.text(`Stress Reduction: ${((results.originalStress - results.maxStress) / results.originalStress * 100).toFixed(1)}%`, 15, startY + 10);
-      doc.text(`Mass Reduction: ${((results.originalWeight - results.weight) / results.originalWeight * 100).toFixed(1)}%`, 80, startY + 10);
+      
+      const stressChangePct = ((results.maxStress - results.originalStress) / results.originalStress) * 100;
+      const stressChangeText = stressChangePct > 0 ? `Stress Increase: +${stressChangePct.toFixed(1)}%` : `Stress Reduction: ${Math.abs(stressChangePct).toFixed(1)}%`;
+      doc.text(stressChangeText, 15, startY + 10);
+      
+      const massChangePct = ((results.weight - results.originalWeight) / results.originalWeight) * 100;
+      const massChangeText = massChangePct > 0 ? `Mass Increase: +${massChangePct.toFixed(1)}%` : `Mass Reduction: ${Math.abs(massChangePct).toFixed(1)}%`;
+      doc.text(massChangeText, 80, startY + 10);
+      
       startY += 15;
     } else {
       doc.text(`Visual representation of the current design performance metrics.`, 15, startY + 5);
@@ -194,28 +210,21 @@ export function ResultsPanel({ results, material, patient, geometry, implantType
           // Use a small delay to ensure Recharts has finished rendering/animations
           await new Promise(resolve => setTimeout(resolve, 100));
 
-          const canvas = await html2canvas(ref.current, {
+          const imgData = await htmlToImage.toPng(ref.current, {
             backgroundColor: '#18181b',
-            scale: 2,
-            logging: false,
-            useCORS: true,
-            allowTaint: true,
-            onclone: (clonedDoc) => {
-              // Fix for oklch colors which html2canvas doesn't support
-              const elements = clonedDoc.getElementsByTagName('*');
-              for (let i = 0; i < elements.length; i++) {
-                const el = elements[i] as HTMLElement;
-                const style = window.getComputedStyle(el);
-                
-                // If background or border uses oklch, replace with a safe fallback
-                if (style.backgroundColor.includes('oklch')) el.style.backgroundColor = '#18181b';
-                if (style.borderColor.includes('oklch')) el.style.borderColor = '#27272a';
-                if (style.color.includes('oklch')) el.style.color = '#a1a1aa';
-              }
+            pixelRatio: 2,
+            filter: (node) => {
+              // Optional: filter out elements that might cause issues, but html-to-image usually handles modern CSS well
+              return true;
             }
           });
-          const imgData = canvas.toDataURL('image/png');
-          const imgHeight = (canvas.height * width) / canvas.width;
+          
+          // Get image dimensions
+          const img = new Image();
+          img.src = imgData;
+          await new Promise((resolve) => { img.onload = resolve; });
+          
+          const imgHeight = (img.height * width) / img.width;
           
           doc.setFontSize(8);
           doc.setTextColor(113, 113, 122);
@@ -244,14 +253,19 @@ export function ResultsPanel({ results, material, patient, geometry, implantType
       }
       startY = drawSectionHeader('4. Optimization Summary', startY);
       
+      const formatChange = (oldVal: number, newVal: number) => {
+        const pct = ((newVal - oldVal) / oldVal) * 100;
+        return pct > 0 ? `+${pct.toFixed(1)}%` : `${pct.toFixed(1)}%`;
+      };
+      
       autoTable(doc, {
         startY: startY,
-        head: [['Metric', 'Original', 'Optimized', 'Improvement']],
+        head: [['Metric', 'Original', 'Optimized', 'Change']],
         body: [
-          ['Max Stress', `${results.originalStress.toFixed(1)} MPa`, `${results.maxStress.toFixed(1)} MPa`, `${((results.originalStress - results.maxStress) / results.originalStress * 100).toFixed(1)}%`],
-          ['Bounding Box Vol', `${results.originalBoundingBoxVolume.toFixed(1)} mm³`, `${results.boundingBoxVolume.toFixed(1)} mm³`, `${((results.originalBoundingBoxVolume - results.boundingBoxVolume) / results.originalBoundingBoxVolume * 100).toFixed(1)}%`],
-          ['Implant Weight', `${results.originalWeight.toFixed(1)} g`, `${results.weight.toFixed(1)} g`, `${((results.originalWeight - results.weight) / results.originalWeight * 100).toFixed(1)}%`],
-          ['Safety Factor', `${(yieldStrength / results.originalStress).toFixed(2)}`, `${safetyFactor.toFixed(2)}`, `${((safetyFactor - (yieldStrength / results.originalStress)) / (yieldStrength / results.originalStress) * 100).toFixed(1)}%`],
+          ['Max Stress', `${results.originalStress.toFixed(1)} MPa`, `${results.maxStress.toFixed(1)} MPa`, formatChange(results.originalStress, results.maxStress)],
+          ['Bounding Box Vol', `${results.originalBoundingBoxVolume.toFixed(1)} mm³`, `${results.boundingBoxVolume.toFixed(1)} mm³`, formatChange(results.originalBoundingBoxVolume, results.boundingBoxVolume)],
+          ['Implant Weight', `${results.originalWeight.toFixed(1)} g`, `${results.weight.toFixed(1)} g`, formatChange(results.originalWeight, results.weight)],
+          ['Safety Factor', `${(yieldStrength / results.originalStress).toFixed(2)}`, `${safetyFactor.toFixed(2)}`, formatChange(yieldStrength / results.originalStress, safetyFactor)],
         ],
         theme: 'striped',
         headStyles: { fillColor: [16, 185, 129], textColor: [255, 255, 255], fontSize: 9 },
@@ -317,6 +331,18 @@ export function ResultsPanel({ results, material, patient, geometry, implantType
         </div>
       </div>
 
+      {results.materialChanged && (
+        <div className="p-4 rounded-xl border bg-blue-500/10 border-blue-500/30 flex items-start gap-3">
+          <AlertTriangle className="text-blue-500 mt-0.5" size={20} />
+          <div>
+            <h4 className="font-medium text-blue-400">Material Optimized</h4>
+            <p className="text-xs text-zinc-400 mt-1">
+              To prevent excessive weight gain, the optimizer automatically switched the material to <span className="text-zinc-200 font-medium">{MATERIAL_PROPERTIES[results.newMaterial as Material].name}</span> for a better strength-to-weight ratio.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div 
           ref={chartRef} 
@@ -346,9 +372,9 @@ export function ResultsPanel({ results, material, patient, geometry, implantType
         >
           <div className="text-xs font-mono text-zinc-500 uppercase mb-2">Performance Profile</div>
           <ResponsiveContainer width="100%" height="100%">
-            <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
+            <RadarChart cx="50%" cy="50%" outerRadius="50%" data={radarData} margin={{ top: 10, right: 25, bottom: 10, left: 25 }}>
               <PolarGrid stroke="#27272a" />
-              <PolarAngleAxis dataKey="subject" stroke="#71717a" fontSize={8} />
+              <PolarAngleAxis dataKey="subject" stroke="#71717a" fontSize={10} />
               <Radar
                 name="Performance"
                 dataKey="A"

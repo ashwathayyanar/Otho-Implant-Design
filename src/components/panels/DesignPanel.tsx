@@ -29,9 +29,29 @@ export function DesignPanel({
     { id: 'spinal_rod', label: 'Spinal Rod', desc: 'Pedicle screw and rod fixation system' },
   ];
 
-  const boneQuality = Math.max(0.5, 1.0 - Math.max(0, patient.age - 30) * 0.008);
+  const boneQuality = Math.max(0.3, patient.boneDensity / 1.5);
   const stressRatio = currentStress / yieldStrength;
   const isSafe = stressRatio < 0.66; // SF > 1.5
+
+  // Function to estimate bone density based on age and weight
+  const estimateBoneDensity = (age: number, weight: number) => {
+    let density = 1.5; // Base young adult density
+    // Age effect: decrease after 40
+    if (age > 40) density -= (age - 40) * 0.008;
+    // Weight effect: heavier individuals tend to have higher bone density due to mechanical loading
+    density += (weight - 70) * 0.004;
+    return Math.max(0.6, Math.min(2.0, density));
+  };
+
+  const handleAgeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newAge = parseInt(e.target.value);
+    setPatient({ ...patient, age: newAge, boneDensity: estimateBoneDensity(newAge, patient.weight) });
+  };
+
+  const handleWeightChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newWeight = parseInt(e.target.value);
+    setPatient({ ...patient, weight: newWeight, boneDensity: estimateBoneDensity(patient.age, newWeight) });
+  };
 
   return (
     <div className="p-6 flex flex-col gap-6">
@@ -75,7 +95,7 @@ export function DesignPanel({
             <input 
               type="range" className="w-full accent-emerald-500" 
               value={patient.age} min={18} max={90} 
-              onChange={(e) => setPatient({ ...patient, age: parseInt(e.target.value) })}
+              onChange={handleAgeChange}
             />
           </div>
           <div className="space-y-2">
@@ -86,7 +106,18 @@ export function DesignPanel({
             <input 
               type="range" className="w-full accent-emerald-500" 
               value={patient.weight} min={40} max={150} 
-              onChange={(e) => setPatient({ ...patient, weight: parseInt(e.target.value) })}
+              onChange={handleWeightChange}
+            />
+          </div>
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-zinc-400">Bone Density</span>
+              <span className="text-zinc-100 font-mono">{patient.boneDensity.toFixed(2)} g/cm³</span>
+            </div>
+            <input 
+              type="range" className="w-full accent-emerald-500" 
+              value={patient.boneDensity} min={0.6} max={2.0} step={0.01}
+              onChange={(e) => setPatient({ ...patient, boneDensity: parseFloat(e.target.value) })}
             />
           </div>
           <div className="pt-2 border-t border-zinc-800 flex justify-between items-center">
