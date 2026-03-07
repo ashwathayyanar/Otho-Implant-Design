@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { ImplantType, PatientData, GeometryData } from '../../App';
 import { cn } from '../../lib/utils';
 import { Activity } from 'lucide-react';
@@ -13,6 +13,40 @@ interface Props {
   currentStress: number;
   yieldStrength: number;
   currentWeight: number;
+}
+
+// 1. Reusable Slider Component to reduce boilerplate
+interface SliderControlProps {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step?: number;
+  unit: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  formatValue?: (val: number) => string | number;
+}
+
+function SliderControl({ label, value, min, max, step = 1, unit, onChange, formatValue }: SliderControlProps) {
+  const displayValue = formatValue ? formatValue(value) : value;
+  
+  return (
+    <div className="space-y-2">
+      <div className="flex justify-between text-sm">
+        <span className="text-zinc-400">{label}</span>
+        <span className="text-zinc-100 font-mono">{displayValue} {unit}</span>
+      </div>
+      <input 
+        type="range" 
+        className="w-full accent-emerald-500" 
+        value={value} 
+        min={min} 
+        max={max} 
+        step={step}
+        onChange={onChange}
+      />
+    </div>
+  );
 }
 
 export function DesignPanel({ 
@@ -33,25 +67,25 @@ export function DesignPanel({
   const stressRatio = currentStress / yieldStrength;
   const isSafe = stressRatio < 0.66; // SF > 1.5
 
-  // Function to estimate bone density based on age and weight
-  const estimateBoneDensity = (age: number, weight: number) => {
+  // 2. Wrapped in useCallback for performance optimization
+  const estimateBoneDensity = useCallback((age: number, weight: number) => {
     let density = 1.5; // Base young adult density
     // Age effect: decrease after 40
     if (age > 40) density -= (age - 40) * 0.008;
     // Weight effect: heavier individuals tend to have higher bone density due to mechanical loading
     density += (weight - 70) * 0.004;
     return Math.max(0.6, Math.min(2.0, density));
-  };
+  }, []);
 
-  const handleAgeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAgeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newAge = parseInt(e.target.value);
     setPatient({ ...patient, age: newAge, boneDensity: estimateBoneDensity(newAge, patient.weight) });
-  };
+  }, [patient, setPatient, estimateBoneDensity]);
 
-  const handleWeightChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleWeightChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newWeight = parseInt(e.target.value);
     setPatient({ ...patient, weight: newWeight, boneDensity: estimateBoneDensity(patient.age, newWeight) });
-  };
+  }, [patient, setPatient, estimateBoneDensity]);
 
   return (
     <div className="p-6 flex flex-col gap-6">
@@ -87,39 +121,24 @@ export function DesignPanel({
       <div className="flex flex-col gap-3 pt-2">
         <h3 className="text-xs font-mono text-zinc-500 uppercase tracking-wider">Patient Specifics</h3>
         <div className="space-y-4 bg-zinc-900/50 p-4 rounded-xl border border-zinc-800/50">
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-zinc-400">Age</span>
-              <span className="text-zinc-100 font-mono">{patient.age} yrs</span>
-            </div>
-            <input 
-              type="range" className="w-full accent-emerald-500" 
-              value={patient.age} min={18} max={90} 
-              onChange={handleAgeChange}
-            />
-          </div>
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-zinc-400">Body Weight</span>
-              <span className="text-zinc-100 font-mono">{patient.weight} kg</span>
-            </div>
-            <input 
-              type="range" className="w-full accent-emerald-500" 
-              value={patient.weight} min={40} max={150} 
-              onChange={handleWeightChange}
-            />
-          </div>
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-zinc-400">Bone Density</span>
-              <span className="text-zinc-100 font-mono">{patient.boneDensity.toFixed(2)} g/cm³</span>
-            </div>
-            <input 
-              type="range" className="w-full accent-emerald-500" 
-              value={patient.boneDensity} min={0.6} max={2.0} step={0.01}
-              onChange={(e) => setPatient({ ...patient, boneDensity: parseFloat(e.target.value) })}
-            />
-          </div>
+          
+          <SliderControl 
+            label="Age" unit="yrs" value={patient.age} 
+            min={18} max={90} onChange={handleAgeChange} 
+          />
+          
+          <SliderControl 
+            label="Body Weight" unit="kg" value={patient.weight} 
+            min={40} max={150} onChange={handleWeightChange} 
+          />
+          
+          <SliderControl 
+            label="Bone Density" unit="g/cm³" value={patient.boneDensity} 
+            min={0.6} max={2.0} step={0.01} 
+            formatValue={(val) => val.toFixed(2)}
+            onChange={(e) => setPatient({ ...patient, boneDensity: parseFloat(e.target.value) })} 
+          />
+
           <div className="pt-2 border-t border-zinc-800 flex justify-between items-center">
             <span className="text-xs text-zinc-500">Est. Bone Quality Factor</span>
             <span className={cn("text-xs font-mono px-2 py-0.5 rounded", boneQuality > 0.8 ? "bg-emerald-500/20 text-emerald-400" : "bg-yellow-500/20 text-yellow-400")}>
@@ -139,41 +158,23 @@ export function DesignPanel({
         </div>
         
         <div className="space-y-4">
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-zinc-400">Length</span>
-              <span className="text-zinc-100 font-mono">{geometry.length.toFixed(1)} mm</span>
-            </div>
-            <input 
-              type="range" className="w-full accent-emerald-500" 
-              value={geometry.length} min={80} max={200} step={1}
-              onChange={(e) => setGeometry({ ...geometry, length: parseFloat(e.target.value) })}
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-zinc-400">Width</span>
-              <span className="text-zinc-100 font-mono">{geometry.width.toFixed(1)} mm</span>
-            </div>
-            <input 
-              type="range" className="w-full accent-emerald-500" 
-              value={geometry.width} min={10} max={30} step={0.5}
-              onChange={(e) => setGeometry({ ...geometry, width: parseFloat(e.target.value) })}
-            />
-          </div>
+          <SliderControl 
+            label="Length" unit="mm" value={geometry.length} 
+            min={80} max={200} step={1} formatValue={(val) => val.toFixed(1)}
+            onChange={(e) => setGeometry({ ...geometry, length: parseFloat(e.target.value) })} 
+          />
 
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-zinc-400">Thickness</span>
-              <span className="text-zinc-100 font-mono">{geometry.thickness.toFixed(1)} mm</span>
-            </div>
-            <input 
-              type="range" className="w-full accent-emerald-500" 
-              value={geometry.thickness} min={2} max={15} step={0.5}
-              onChange={(e) => setGeometry({ ...geometry, thickness: parseFloat(e.target.value) })}
-            />
-          </div>
+          <SliderControl 
+            label="Width" unit="mm" value={geometry.width} 
+            min={10} max={30} step={0.5} formatValue={(val) => val.toFixed(1)}
+            onChange={(e) => setGeometry({ ...geometry, width: parseFloat(e.target.value) })} 
+          />
+
+          <SliderControl 
+            label="Thickness" unit="mm" value={geometry.thickness} 
+            min={2} max={15} step={0.5} formatValue={(val) => val.toFixed(1)}
+            onChange={(e) => setGeometry({ ...geometry, thickness: parseFloat(e.target.value) })} 
+          />
         </div>
       </div>
 
