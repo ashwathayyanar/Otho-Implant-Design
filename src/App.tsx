@@ -9,7 +9,7 @@ import { ResultsPanel } from './components/panels/ResultsPanel';
 import { TopBar } from './components/TopBar';
 
 export type Tab = 'design' | 'material' | 'fea' | 'optimization' | 'results';
-export type ImplantType = 'bone_plate' | 'hip_stem' | 'knee_joint' | 'spinal_rod';
+export type ImplantType = 'hip_stem' | 'bone_plate' | 'knee_joint' | 'spinal_rod' | 'bone';
 export type Material = 'Ti6Al4V' | 'SS316L' | 'CoCr' | 'PEEK' | 'BioCeramic';
 export type LoadCase = 'walking' | 'stair' | 'jump' | 'iso';
 
