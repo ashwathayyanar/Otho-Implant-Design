@@ -61,6 +61,8 @@ export function DesignPanel({
     { id: 'bone_plate', label: 'Bone Plate', desc: 'Fracture fixation plate with locking screws' },
     { id: 'knee_joint', label: 'Knee Joint', desc: 'Tibial and femoral components' },
     { id: 'spinal_rod', label: 'Spinal Rod', desc: 'Pedicle screw and rod fixation system' },
+    // ADDED BONE HERE
+    { id: 'bone', label: 'Bone', desc: 'Custom bone graft or replacement structure' }, 
   ];
 
   const boneQuality = Math.max(0.3, patient.boneDensity / 1.5);
